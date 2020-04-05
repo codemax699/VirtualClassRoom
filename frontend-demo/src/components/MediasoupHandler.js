@@ -1,35 +1,158 @@
 import { Device } from "mediasoup-client";
 import { SocketClient } from "./SocketClient";
 
+let sendTransport = {};
+let recvTransport = {};
+let routerRtpCapabilities = {};
+let consumers = {};
+let conferenceData = {};
+let subscribeEvents = {};
+let transportSetting = {};
+
 class MediasoupHandler {
-  subscribeEvents = {};
   constructor(authToken, path) {
-    this.mySignaling = new SocketClient(authToken, path);
+    this.mySignaling = new SocketClient(this.messageProcessor, path);
     //this._dataConsumers = new Map();
-    this.sendTransport = {};
-    this.recvTransport = {};
+    sendTransport = {};
+    recvTransport = {};
 
     // Create a device (use browser auto-detection).
     this.device = new Device();
-    this.routerRtpCapabilities = {};
-    this.consumers = {};
-    this.conferenceData = {};
+
+    routerRtpCapabilities = {};
+    consumers = {};
+    conferenceData = {};
+    subscribeEvents = {};
   }
 
+  messageProcessor = async (msgString) => {
+    try {
+      console.log("MediasoupHandler", "messageProcessor", `${msgString}`);
+      const msg = JSON.parse(msgString);
+      switch (msg.event) {
+        case "conference-create": {
+          conferenceData = {
+            conferenceId: msg.conferenceId,
+            routerId: msg.routerId,
+          };
+          if (!(await this.getRouterCapabilities()))
+            throw new Error("Fail To getRouterCapabilities");
+
+          break;
+        }
+        case "router-capability": {
+          routerRtpCapabilities = {
+            routerId: msg.routerId,
+            capability: msg.capability,
+          };
+          if (!(await this.loadDeviceRTPCapabilities(routerRtpCapabilities.capability)))
+            throw new Error("Fail To loadDeviceRTPCapabilities");
+
+          if (!(await this.createTransport()))
+            throw new Error("Fail To createTransport");
+          break;
+        }
+        case "transport-create": {
+          transportSetting = msg;
+          if (!(await this.createSendTransport(transportSetting)))
+            throw new Error("Fail To createSendTransport");
+          if (!(await this.createRecvTransport(transportSetting)))
+            throw new Error("Fail To createRecvTransport");
+          break;
+        }
+        case "transport-connect": {
+          break;
+        }
+        case "producer-create": {
+          conferenceData.producerId = msg.producerId;
+          break;
+        }
+        case "consumer-create": {
+
+          /* const consumer = await transport.consume(
+            {
+              id            : data.id,
+              producerId    : data.producerId,
+              kind          : data.kind,
+              rtpParameters : data.rtpParameters
+            });
+        
+          // Render the remote video track into a HTML video element.
+          const { track } = consumer;
+        
+          videoElem.srcObject = new MediaStream([ track ]); */
+
+          const consumer = await this.recvTransport.consume({
+            producerId: conferenceData.producerId,
+            consumerId: msg.consumerId,
+            //kind: request.data.kind,
+            rtpParameters: routerRtpCapabilities,
+            //type: request.data.type,
+            // appData: request.data.appData,
+            // producerPaused: request.data.producerPaused,
+            conferenceId: msg.conferenceId,
+            routerId: msg.routerId,
+            transportId: msg.transportId,
+          });
+          consumer.on("transportclose", () => {
+            if (subscribeEvents["closeConsumer"])
+              subscribeEvents["closeConsumer"](consumer.id);
+            consumers.delete(consumer.id);
+          });
+          consumers[consumer.id] = consumer;
+          if (subscribeEvents["newConsumer"])
+            subscribeEvents["newConsumer"](consumer);
+          break;
+        }
+        case "media-broadcast": {
+          break;
+        }
+        case "activeSpeaker": {
+          break;
+        }
+        case "consumerClosed": {
+          if (subscribeEvents["closeConsumer"])
+            subscribeEvents["closeConsumer"](msg.data.consumerId);
+          consumers.delete(msg.data.consumerId);
+          break;
+        }
+        case "consumerPaused": {
+          break;
+        }
+        case "consumerResumed": {
+          break;
+        }
+        case "consumerScore": {
+          break;
+        }
+        case "producerScore": {
+          break;
+        }
+        case "layerChanged": {
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+    } catch (error) {
+      console.error("MediasoupHandler", "messageProcessor", error);
+    }
+  };
   createConference = async (name) => {
     try {
-      const conferenceData = await this.mySignaling.request(
-        "createConference",
-        name
-      );
+      const reply = await this.mySignaling.request("conference-create", {
+        conferenceId: name,
+      });
 
       console.log(
         "MediasoupHandler",
         "createConference",
-        `Conference Create Successfully. ${JSON.stringify(conferenceData)}`
+        `Conference Create Request ${
+          reply ? "Send Successfully" : "Fail to Send"
+        }. ${name}`
       );
-      this.conferenceData = conferenceData;
-      return true;
+      return reply;
     } catch (error) {
       console.error("MediasoupHandler", "createConference", error);
       return false;
@@ -39,22 +162,20 @@ class MediasoupHandler {
   getRouterCapabilities = async () => {
     try {
       // Communicate with our server app to retrieve router RTP capabilities.
-      const routerRtpCapabilities = await this.mySignaling.request(
-        "getRouterCapabilities",
-        null
-      );
+      const reply = await this.mySignaling.request("router-capability", {
+        routerId: conferenceData.routerId,
+      });
 
       console.log(
         "MediasoupHandler",
-        "createSendTransport",
-        `Communicate with our server app to retrieve router RTP capabilities. ${JSON.stringify(
-          routerRtpCapabilities
-        )}`
+        "getRouterCapabilities",
+        `Get Router Capabilities Request ${
+          reply ? "Send Successfully" : "Fail to Send"
+        }`
       );
-      this.routerRtpCapabilities = routerRtpCapabilities;
-      return true;
+      return reply;
     } catch (error) {
-      console.error("MediasoupHandler", "createSendTransport", error);
+      console.error("MediasoupHandler", "getRouterCapabilities", error);
       return null;
     }
   };
@@ -93,33 +214,24 @@ class MediasoupHandler {
   // Create a transport in the server for sending our media through it.
   createTransport = async () => {
     try {
-      const {
-        id,
-        iceParameters,
-        iceCandidates,
-        dtlsParameters,
-        sctpParameters,
-      } = await this.mySignaling.request("createTransport", {
+      const reply = await this.mySignaling.request("transport-create", {
+        conferenceId: conferenceData.conferenceId,
+        type: "producer",
+        routerId: conferenceData.routerId,
+        capabilities: routerRtpCapabilities,
         sctpCapabilities: this.device.sctpCapabilities,
       });
 
-      this.transportSetting = {
-        id,
-        iceParameters,
-        iceCandidates,
-        dtlsParameters,
-        sctpParameters,
-      };
       console.log(
         "MediasoupHandler",
-        "canProduceVideo",
-        `Create a transport in the server for sending our media through it. ${JSON.stringify(
-          this.transportSetting
-        )}`
+        "createTransport",
+        `transport-create Request ${
+          reply ? "Send Successfully" : "Fail to Send"
+        }`
       );
-      return true;
+      return reply;
     } catch (error) {
-      console.error("MediasoupHandler", "canProduceVideo", error);
+      console.error("MediasoupHandler", "createTransport", error);
       return false;
     }
   };
@@ -127,19 +239,16 @@ class MediasoupHandler {
   // Create the local representation of our server-side transport.
   createSendTransport = (transportSetting) => {
     try {
-      const sendTransport = this.device.createSendTransport({
-        id: transportSetting.id,
+      const transport = this.device.createSendTransport({
+        id: transportSetting.transportId,
         iceParameters: transportSetting.iceParameters,
         iceCandidates: transportSetting.iceCandidates,
         dtlsParameters: transportSetting.dtlsParameters,
         sctpParameters: transportSetting.sctpParameters,
       });
-      this.sendTransport = sendTransport;
+      sendTransport = transport;
       if (
-        !this.initiateSendTransportListeners(
-          this.sendTransport,
-          this.mySignaling
-        )
+        !this.initiateSendTransportListeners(sendTransport, this.mySignaling)
       ) {
         throw new Error("Fail To Initiate Send Transport Listeners");
       }
@@ -157,19 +266,16 @@ class MediasoupHandler {
 
   createRecvTransport = (transportSetting) => {
     try {
-      const recvTransport = this.device.createRecvTransport({
-        id: transportSetting.id,
+      const transport = this.device.createRecvTransport({
+        id: transportSetting.transportId,
         iceParameters: transportSetting.iceParameters,
         iceCandidates: transportSetting.iceCandidates,
         dtlsParameters: transportSetting.dtlsParameters,
         sctpParameters: transportSetting.sctpParameters,
       });
-      this.recvTransport = recvTransport;
+      recvTransport = transport;
       if (
-        !this.initiateRecvTransportListeners(
-          this.sendTransport,
-          this.mySignaling
-        )
+        !this.initiateRecvTransportListeners(sendTransport, this.mySignaling)
       ) {
         throw new Error("Fail To Initiate Recv Transport Listeners");
       }
@@ -193,15 +299,31 @@ class MediasoupHandler {
         async ({ dtlsParameters }, callback, errback) => {
           // Here we must communicate our local parameters to our remote transport.
           try {
+            console.log(
+              "MediasoupHandler",
+              "initiateSendTransportListeners",
+              "sendTransport",
+              "connect"
+            );
+
             await mySignaling.request("transport-connect", {
-              transportId: sendTransport.id,
-              dtlsParameters,
+              conferenceId: conferenceData.conferenceId,
+              type: "producer",
+              routerId: conferenceData.routerId,
+              transportId: transportSetting.transportId,
+              capabilities: routerRtpCapabilities,
+              dtlsParameters: dtlsParameters,
             });
 
             // Done in the server, tell our transport.
             callback();
           } catch (error) {
-            // Something was wrong in server side.
+            console.error(
+              "MediasoupHandler",
+              "initiateSendTransportListeners",
+              "connect",
+              error
+            );
             errback(error);
           }
         }
@@ -213,23 +335,46 @@ class MediasoupHandler {
         async ({ kind, rtpParameters, appData }, callback, errback) => {
           // Here we must communicate our local parameters to our remote transport.
           try {
-            const { id } = await mySignaling.request("produce", {
-              transportId: sendTransport.id,
+            console.log(
+              "MediasoupHandler",
+              "initiateSendTransportListeners",
+              "sendTransport",
+              "produce"
+            );
+
+            const reply = await this.mySignaling.request("producer-create", {
+              conferenceId: conferenceData.conferenceId,
               kind,
-              rtpParameters,
-              appData,
+              routerId: conferenceData.routerId,
+              transportId: transportSetting.transportId,
+              rtpParams: rtpParameters,
+              serverRtpParams: routerRtpCapabilities,
+              appData
             });
 
+            console.log(
+              "MediasoupHandler",
+              "produce",
+              `producer-create Request ${
+                reply ? "Send Successfully" : "Fail to Send"
+              }`
+            );
+
             // Done in the server, pass the response to our transport.
-            callback({ id });
+            callback({ id: transportSetting.transportId });
           } catch (error) {
-            // Something was wrong in server side.
+            console.error(
+              "MediasoupHandler",
+              "initiateSendTransportListeners",
+              "produce",
+              error
+            );
             errback(error);
           }
         }
       );
 
-      // Set transport "producedata" event handler.
+      /* // Set transport "producedata" event handler.
       sendTransport.on(
         "producedata",
         async (
@@ -254,7 +399,7 @@ class MediasoupHandler {
             errback(error);
           }
         }
-      );
+      ); */
 
       console.log(
         "MediasoupHandler",
@@ -272,18 +417,25 @@ class MediasoupHandler {
     }
   };
 
-  initiateRecvTransportListeners = (sendTransport, mySignaling) => {
+  initiateRecvTransportListeners = (recvTransport, mySignaling) => {
     try {
       // Set transport "connect" event handler.
-      sendTransport.on(
+      recvTransport.on(
         "connect",
         async ({ dtlsParameters }, callback, errback) => {
           // Here we must communicate our local parameters to our remote transport.
           try {
-            await mySignaling.request("transport-connect", {
+            console.log(
+              "MediasoupHandler",
+              "initiateRecvTransportListeners",
+              "recvTransport",
+              "connect"
+            );
+
+            /*  await mySignaling.request("transport-connect", {
               transportId: sendTransport.id,
               dtlsParameters,
-            });
+            }); */
 
             // Done in the server, tell our transport.
             callback();
@@ -310,9 +462,9 @@ class MediasoupHandler {
     }
   };
 
-  /* createProducer = async (room, sendTransport) => {
+  createProducer = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      /* const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: true,
       });
@@ -323,17 +475,27 @@ class MediasoupHandler {
       const videoProducer = room.createProducer(videoTrack);
       audioProducer.send(sendTransport);
       videoProducer.send(sendTransport);
+
+ */
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true,
+        video: true });
+      const webcamTrack = stream.getVideoTracks()[0];
+      const audioTrack = stream.getAudioTracks()[0];
+      const webcamProducer = await sendTransport.produce({
+        track: webcamTrack,
+      });
+
       console.log(
         "MediasoupHandler",
         "createProducer",
-        `Recv Transporter Crate Successfully.`
+        `Recv Transporter Crate Successfully. ${JSON.stringify(webcamProducer)}`
       );
       return true;
     } catch (error) {
       console.error("MediasoupHandler", "createProducer", error);
       return false;
     }
-  }; */
+  };
 
   initiateConference = async (conferenceName) => {
     try {
@@ -341,7 +503,8 @@ class MediasoupHandler {
         `%c MediasoupHandler initiateConference  :  ${conferenceName}`,
         "color:#FF00FF; font-family:'Ubuntu'; display: block;font-weight:bold; font-size:18px;background: #34eb4f;"
       );
-      this.mySignaling.socket.on('notification', (notification) => {
+
+      /* this.mySignaling.socket.on("notification", (notification) => {
         try {
           console.log(
             "MediasoupHandler",
@@ -350,49 +513,20 @@ class MediasoupHandler {
             `New notification came from server: ${JSON.stringify(notification)}`
           );
 
-          if (this.subscribeEvents[notification.method])
-                this.subscribeEvents[notification.method](notification);
-                
-          /* switch (notification.method) {
-            case 'newPeer': {
-              
-              break;
-            }
-            case 'peerClosed': {
-              
-              break;
-            }
-            case 'consumerClosed': {
-              
-              break;
-            }
-            case 'consumerPaused': {
-              
-              break;
-            }
-            case 'consumerResumed': {
-              
-              break;
-            }
-            case 'consumerLayersChanged': {
-              
-              break;
-            }
-            case 'activeSpeaker': {
-              
-              break;
-            }            
-            default: {
-              break;
-            }
-          } */
+          if (subscribeEvents[notification.method])
+            subscribeEvents[notification.method](notification);
+         
         } catch (error) {
-          console.error("MediasoupHandler", "initiateConference","notification", error);
+          console.error(
+            "MediasoupHandler",
+            "initiateConference",
+            "notification",
+            error
+          );
         }
-      });
+      }); */
 
-
-      this.mySignaling.socket.on("request", async (request) => {
+      /* this.mySignaling.socket.on("request", async (request) => {
         try {
           console.log(
             "MediasoupHandler",
@@ -403,36 +537,24 @@ class MediasoupHandler {
 
           switch (request.event) {
             case "consume": {
-              /* {
-                event: "consume",
-                data: {
-                  producerId: producer.GetName(),
-                  consumerId: cid,
-                  kind: _consumer.kind,
-                  rtpParameters: _consumer.rtpParameters,
-                  type: _consumer.type,
-                  appData: producer.GetUserData(),
-                  producerPaused: consumer.producerPaused,
-                }
-              } */
-              const consumer = await this.recvTransport.consume({
+              
+              const consumer = await recvTransport.consume({
                 producerId: request.data.producerId,
                 consumerId: request.data.consumerId,
                 kind: request.data.kind,
                 rtpParameters: request.data.rtpParameters,
                 type: request.data.type,
                 appData: request.data.appData,
-                producerPaused: request.data.producerPaused,
-                //appData:Object.assign(Object.assign({}, appData), { peerId }) // Trick.
+                producerPaused: request.data.producerPaused
               });
               consumer.on("transportclose", () => {
-                if (this.subscribeEvents["closeConsumer"])
-                this.subscribeEvents["closeConsumer"](consumer.id);
-                this.consumers.delete(consumer.id);
+                if (subscribeEvents["closeConsumer"])
+                  subscribeEvents["closeConsumer"](consumer.id);
+                consumers.delete(consumer.id);
               });
-              this.consumers[consumer.id] = consumer;
-              if (this.subscribeEvents["newConsumer"])
-                this.subscribeEvents["newConsumer"](consumer);
+              consumers[consumer.id] = consumer;
+              if (subscribeEvents["newConsumer"])
+                subscribeEvents["newConsumer"](consumer);
               break;
             }
             default: {
@@ -440,15 +562,18 @@ class MediasoupHandler {
             }
           }
         } catch (error) {
-          console.error("MediasoupHandler", "initiateConference","request", error);
+          console.error(
+            "MediasoupHandler",
+            "initiateConference",
+            "request",
+            error
+          );
         }
-        
-        
-      });
+      }); */
       if (!(await this.createConference(conferenceName)))
         throw new Error("Fail To create Conference");
 
-      if (!(await this.getRouterCapabilities()))
+      /* if (!(await this.getRouterCapabilities()))
         throw new Error("Fail To getRouterCapabilities");
 
       if (!(await this.loadDeviceRTPCapabilities()))
@@ -461,14 +586,12 @@ class MediasoupHandler {
         throw new Error("Fail To createSendTransport");
 
       if (!(await this.createRecvTransport(this.transportSetting)))
-        throw new Error("Fail To createRecvTransport");
+        throw new Error("Fail To createRecvTransport"); */
 
       console.log(
         "MediasoupHandler",
         "createRoom",
-        `Initiate Conference Successfully. ${JSON.stringify(
-          this.conferenceData
-        )}`
+        `Initiate Conference Successfully. ${JSON.stringify(conferenceData)}`
       );
       console.groupEnd();
       return true;
@@ -481,16 +604,14 @@ class MediasoupHandler {
 
   Client = {
     subscribeEvent: (subscriber, event, handler) => {
-      /* if (!this.subscribeEvents[event]) {
-        this.subscribeEvents[event] = {};
+      /* if (!subscribeEvents[event]) {
+        subscribeEvents[event] = {};
       }
-      this.subscribeEvents[event][subscriber] = handler; */
-
-      
+      subscribeEvents[event][subscriber] = handler; */
     },
-    initiateConference: (conferenceName,events) => {
+    initiateConference: (conferenceName, events) => {
       try {
-        this.subscribeEvents = events;
+        subscribeEvents = events;
         this.initiateConference(conferenceName);
         return true;
       } catch (error) {
@@ -498,10 +619,80 @@ class MediasoupHandler {
         return false;
       }
     },
+    producerCreate: async () => {
+      try {
+        await this.createProducer();
+        /* const reply = await this.mySignaling.request("producer-create", {
+          conferenceId: conferenceData.conferenceId,
+          kind: "video",
+          routerId: conferenceData.routerId,
+          transportId: transportSetting.transportId,
+          rtpParams: this.device.rtpCapabilities,
+          serverRtpParams: routerRtpCapabilities
+        }); */
+        console.log(
+          "MediasoupHandler",
+          "producerCreate",
+          `producerCreate Request ${
+            true ? "Send Successfully" : "Fail to Send"
+          }`
+        );
+        return true;
+      } catch (error) {
+        console.error("MediasoupHandler", "producerBroadcast", error);
+        return false;
+      }
+    },
+    producerBroadcast: async () => {
+      try {
+        const reply = await this.mySignaling.request("producer-broadcast", {
+          conferenceId: conferenceData.conferenceId,
+          routerId: conferenceData.routerId,
+          transportId: transportSetting.transportId,
+          producerId: conferenceData.producerId,
+        });
+
+        console.log(
+          "MediasoupHandler",
+          "producerBroadcast",
+          `producerBroadcast Request ${
+            reply ? "Send Successfully" : "Fail to Send"
+          }`
+        );
+        return reply;
+      } catch (error) {
+        console.error("MediasoupHandler", "producerBroadcast", error);
+        return false;
+      }
+    },
+    consume: async () => {
+      try {
+        const reply = await this.mySignaling.request("consume", {
+          conferenceId: conferenceData.conferenceId,
+          kind: "video",
+          routerId: conferenceData.routerId,
+          transportId: transportSetting.transportId,
+          rtpParams: routerRtpCapabilities,
+        });
+
+        console.log(
+          "MediasoupHandler",
+          "consume",
+          `consume Request ${reply ? "Send Successfully" : "Fail to Send"}`
+        );
+        return reply;
+      } catch (error) {
+        console.error("MediasoupHandler", "consume", error);
+        return false;
+      }
+    },
   };
 }
 
-const mediasoupHandler = new MediasoupHandler("token", "path");
+const mediasoupHandler = new MediasoupHandler(
+  "token",
+  "ws://b16df8d2.ngrok.io"
+);
 Object.freeze(mediasoupHandler);
 
 export default mediasoupHandler;

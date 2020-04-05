@@ -153,7 +153,37 @@ export default function SoftPhone() {
               MediasoupHandler.Client.initiateConference(Name, events);
             }}
           >
-            Primary
+            initiateConference
+          </Button>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => {
+              MediasoupHandler.Client.consume();
+            }}
+          >
+            consume
+          </Button>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => {
+              MediasoupHandler.Client.producerCreate();
+            }}
+          >
+            producerCreate
+          </Button>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => {
+              MediasoupHandler.Client.producerBroadcast();
+            }}
+          >
+            producerBroadcast
           </Button>
 
           {Object.values(consumers).map((item) => {

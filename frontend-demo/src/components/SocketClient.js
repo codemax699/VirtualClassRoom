@@ -1,67 +1,38 @@
 import io from "socket.io-client";
-
+let webSocket;
 export class SocketClient {
-  constructor(authToken, path) {
-    this._eventHandlers = {};
+  constructor(onMessage, path) {
+    webSocket = new WebSocket(path);
+    this.socket = webSocket;
+    webSocket.onopen = function (e) {
+      console.log("SocketClient", "onopen", `Socket Connected With ${path}`);
+    };
 
-    this.socket = io(path, {
-      forceNew: true,
-      query: { authToken },
-    });
+    webSocket.onmessage = function (event) {
+      onMessage(event.data);
+      //alert(`[message] Data received from server: ${event.data}`);
+    };
 
-    this.socket.on("open", (message) => {
-      console.log(`SocketClient connection open`);
-      if (this._eventHandlers) {
-        Object.keys(this._eventHandlers).forEach((key) => {
-          this._eventHandlers[key]("open", message);
-        });
+    webSocket.onclose = function (event) {
+      if (event.wasClean) {
+        console.error(
+          "SocketClient",
+          "onclose",
+          `[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`
+        );
+      } else {
+        console.error(
+          "SocketClient",
+          "onclose",
+          "[close] Connection died",
+          event
+        );
       }
-    });
+    };
 
-    this.socket.on("connect_error", (message) => {
-      console.log(`SocketClient connection error`);
-      if (this._eventHandlers) {
-        Object.keys(this._eventHandlers).forEach((key) => {
-          this._eventHandlers[key]("connect_error", message);
-        });
-      }
-    });
-
-    this.socket.on("connect_timeout", (message) => {
-      console.log(`SocketClient connection timeout`);
-      if (this._eventHandlers) {
-        Object.keys(this._eventHandlers).forEach((key) => {
-          this._eventHandlers[key]("connect_timeout", message);
-        });
-      }
-    });
-
-    this.socket.on("reconnect", (message) => {
-      console.log(`SocketClient reconnected after ${message} attempts`);
-      if (this._eventHandlers) {
-        Object.keys(this._eventHandlers).forEach((key) => {
-          this._eventHandlers[key]("reconnect", message);
-        });
-      }
-    });
-
-    this.socket.on("disconnect", (message) => {
-      console.log(`SocketClient disconnected`);
-      if (this._eventHandlers) {
-        Object.keys(this._eventHandlers).forEach((key) => {
-          this._eventHandlers[key]("disconnect", "disconnected");
-        });
-      }
-    });
-
-    this.socket.on("success", (message) => {
-      if (this._eventHandlers) {
-        Object.keys(this._eventHandlers).forEach((key) => {
-          this._eventHandlers[key]("success", message);
-        });
-      }
-      console.log("SocketClient initiation succsessfull");
-    });
+    webSocket.onerror = function (error) {
+      console.error("SocketClient", "onerror", error);
+    };
   }
 
   subscribeEventHandler(name, handler) {
@@ -70,22 +41,26 @@ export class SocketClient {
 
   disconnect() {
     try {
-      this.socket.disconnect(true);
+      console.log("SocketClient", "disconnect", `Socket disconnected `);
+      webSocket.disconnect(true);
     } catch (ex) {
       console.error("disconnecting Connection", ex);
     }
   }
 
-  request = (command,data) => {
-    return new Promise(function (resolve, reject) {
-      try {
-        this.socket.emit(command, { data }, (ackData) => {
-          resolve(ackData);
-        });
-      } catch (error) {
-        console.error("SocketClient", "request", error);
-        reject(error);
-      }
-    });
+  request = (command, data) => {
+    return new Promise(
+      function (resolve, reject) {
+        try {
+          const msg = JSON.stringify({ action: command, message: data });
+          console.log("SocketClient", "send", `Send Message : ${msg}`);
+          webSocket.send(msg);
+          resolve(true);
+        } catch (error) {
+          console.error("SocketClient", "request", error);
+          reject(error);
+        }
+      }.bind(this)
+    );
   };
 }
