@@ -432,10 +432,14 @@ class MediasoupHandler {
               "connect"
             );
 
-            /*  await mySignaling.request("transport-connect", {
-              transportId: sendTransport.id,
-              dtlsParameters,
-            }); */
+            await mySignaling.request("connectConsumerTransport", {
+              conferenceId: conferenceData.conferenceId,
+              type: "producer",
+              routerId: conferenceData.routerId,
+              transportId: transportSetting.transportId,
+              capabilities: routerRtpCapabilities,
+              dtlsParameters: dtlsParameters,
+            });
 
             // Done in the server, tell our transport.
             callback();
