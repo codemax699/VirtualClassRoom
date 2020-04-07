@@ -4,10 +4,9 @@ import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Box";
 import { makeStyles } from "@material-ui/core/styles";
 import TextField from "@material-ui/core/TextField";
+import MediasoupHandler from "./MediasoupHandler";
 import Participator from "./Participator";
 
-import client from './Mediasoup/MediasoupClient';
-import  server from './Mediasoup/MediasoupServer';
 const useStyles = makeStyles((theme) => ({
   root: {
     "& > *": {
@@ -133,41 +132,8 @@ export default function SoftPhone() {
     },
   };
 
- const clientInit=()=>{
-  client.initialize(events)
-  }
-
-  const serverInit=()=>{
-    server.initialize(events);
-
-  }
   return (
     <Container fixed>
-      <Box component="span" m={1}>
-        <div className={classes.root}>         
-
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              clientInit();
-            }}
-          >
-            clientInit
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              serverInit();
-            }}
-          >
-            serverInit
-          </Button>
-          
-        </div>
-      </Box>
-
       <Box component="span" m={1}>
         <div className={classes.root}>
           <TextField
@@ -184,22 +150,41 @@ export default function SoftPhone() {
             variant="contained"
             color="primary"
             onClick={() => {
-             server.createConference(Name, events);
+              MediasoupHandler.Client.initiateConference(Name, events);
             }}
           >
-            createConference
+            initiateConference
           </Button>
 
           <Button
             variant="contained"
             color="primary"
             onClick={() => {
-             server.broadcast();
+              MediasoupHandler.Client.consume();
             }}
           >
-            broadcast
+            consume
           </Button>
-          
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => {
+              MediasoupHandler.Client.producerCreate();
+            }}
+          >
+            producerCreate
+          </Button>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => {
+              MediasoupHandler.Client.producerBroadcast();
+            }}
+          >
+            producerBroadcast
+          </Button>
 
           {Object.values(consumers).map((item) => {
             const stream = new MediaStream();
@@ -217,33 +202,6 @@ export default function SoftPhone() {
           })}
         </div>
       </Box>
-
-      <Box component="span" m={1}>
-        <div className={classes.root}>
-          {/* <TextField
-            id="outlined-basic"
-            label="Outlined"
-            variant="outlined"
-            value={Name}
-            onChange={(e) => {
-              setName(e.target.value);
-            }}
-          /> */}
-
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              client.joinConference(Name, events);
-            }}
-          >
-            joinConference
-          </Button>
-
-          
-        </div>
-      </Box>
-
     </Container>
   );
 }
