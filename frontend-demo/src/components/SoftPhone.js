@@ -6,8 +6,8 @@ import { makeStyles } from "@material-ui/core/styles";
 import TextField from "@material-ui/core/TextField";
 import Participator from "./Participator";
 
-import client from './Mediasoup/MediasoupClient';
-import  server from './Mediasoup/MediasoupServer';
+import mediasoup from './Mediasoup/lib/index';
+
 const useStyles = makeStyles((theme) => ({
   root: {
     "& > *": {
@@ -134,11 +134,11 @@ export default function SoftPhone() {
   };
 
  const clientInit=()=>{
-  client.initialize(events)
+  mediasoup.client.initialize(events)
   }
 
   const serverInit=()=>{
-    server.initialize(events);
+    mediasoup.server.initialize(events);
 
   }
   return (
@@ -184,7 +184,7 @@ export default function SoftPhone() {
             variant="contained"
             color="primary"
             onClick={() => {
-             server.createConference(Name, events);
+              mediasoup.server.createConference(Name, events);
             }}
           >
             createConference
@@ -194,7 +194,7 @@ export default function SoftPhone() {
             variant="contained"
             color="primary"
             onClick={() => {
-             server.broadcast();
+              mediasoup.server.broadcast();
             }}
           >
             broadcast
@@ -234,7 +234,7 @@ export default function SoftPhone() {
             variant="contained"
             color="primary"
             onClick={() => {
-              client.joinConference(Name, events);
+              mediasoup.client.joinConference(Name, events);
             }}
           >
             joinConference
