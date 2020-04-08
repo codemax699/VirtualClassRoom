@@ -36,7 +36,7 @@ class index extends MediasoupSdk {
     return new Promise(async (resolve, reject)=> {
       try {
         console.log("MediasoupServer", "broadcast");
-        await super.signaling.producerBroadcast((status)=>{
+        await this.signaling.producerBroadcast((status)=>{
             resolve(status);
         });
       } catch (error) {
@@ -46,17 +46,17 @@ class index extends MediasoupSdk {
     });
   };
 
-  joinConference = (name) => {
+  joinConference = (conferenceId,routerId) => {
     return new Promise(async (resolve, reject) => {
       try {
-        console.log("MediasoupClient", "joinConference", `${name}`);
-        await super.signaling.getRouterCapabilities(
+        console.log("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`);
+        await this.signaling.joinConference(conferenceId,routerId,
           (track) => {
             resolve(track);
           }
         );
       } catch (error) {
-        console.error("MediasoupClient", "joinConference", `${name}`, error);
+        console.error("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`, error);
         reject(error);
       }
     });

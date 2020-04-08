@@ -18,17 +18,17 @@ class MediasoupClient extends MediasoupSdk {
     }
   }; 
 
-  joinConference = (name) => {
+  joinConference = (conferenceId,routerId) => {
     return new Promise(async (resolve, reject) => {
       try {
-        console.log("MediasoupClient", "joinConference", `${name}`);
-        await super.signaling.getRouterCapabilities(
+        console.log("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`);
+        await super.signaling.getRouterCapabilities(conferenceId,routerId,
           (track) => {
             resolve(track);
           }
         );
       } catch (error) {
-        console.error("MediasoupClient", "joinConference", `${name}`, error);
+        console.error("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`, error);
         reject(error);
       }
     });

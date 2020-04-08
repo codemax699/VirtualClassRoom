@@ -6,7 +6,7 @@ import { makeStyles } from "@material-ui/core/styles";
 import TextField from "@material-ui/core/TextField";
 import Participator from "./Participator";
 
-import mediasoup from './Mediasoup/lib/index';
+import mediasoup from "./Mediasoup/lib/index";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -18,10 +18,25 @@ const useStyles = makeStyles((theme) => ({
 
 export default function SoftPhone() {
   const [Name, setName] = useState("");
+  const [conferenceId, setConferenceId] = useState("");
+  const [routerId, setRouterId] = useState("");
+
   const classes = useStyles();
   const [consumers, setConsumers] = useState({});
 
   const events = {
+    onMyStream:(mStream)=>{
+      try {
+        console.log(
+          "SoftPhone",
+          "events",
+          "onMyStream"
+        );
+       
+      } catch (error) {
+        console.error("SoftPhone", "events", "onMyStream", error);
+      }
+    },
     newConsumer: (consumer) => {
       try {
         console.log(
@@ -133,19 +148,17 @@ export default function SoftPhone() {
     },
   };
 
- const clientInit=()=>{
-  mediasoup.client.initialize(events)
-  }
+  const clientInit = () => {
+    mediasoup.client.initialize(events);
+  };
 
-  const serverInit=()=>{
+  const serverInit = () => {
     mediasoup.server.initialize(events);
-
-  }
+  };
   return (
     <Container fixed>
       <Box component="span" m={1}>
-        <div className={classes.root}>         
-
+        <div className={classes.root}>
           <Button
             variant="contained"
             color="primary"
@@ -164,7 +177,6 @@ export default function SoftPhone() {
           >
             serverInit
           </Button>
-          
         </div>
       </Box>
 
@@ -199,7 +211,6 @@ export default function SoftPhone() {
           >
             broadcast
           </Button>
-          
 
           {Object.values(consumers).map((item) => {
             const stream = new MediaStream();
@@ -220,30 +231,32 @@ export default function SoftPhone() {
 
       <Box component="span" m={1}>
         <div className={classes.root}>
-          {/* <TextField
-            id="outlined-basic"
-            label="Outlined"
-            variant="outlined"
-            value={Name}
+          <TextField
+            id="conferenceId"
+            label="conferenceId"
             onChange={(e) => {
-              setName(e.target.value);
+              setConferenceId(e.target.value);
             }}
-          /> */}
+          />
+          <TextField
+            id="routerId"
+            label="routerId"
+            onChange={(e) => {
+              setRouterId(e.target.value);
+            }}
+          />
 
           <Button
             variant="contained"
             color="primary"
             onClick={() => {
-              mediasoup.client.joinConference(Name, events);
+              mediasoup.client.joinConference(conferenceId,routerId, events);
             }}
           >
             joinConference
           </Button>
-
-          
         </div>
       </Box>
-
     </Container>
   );
 }
