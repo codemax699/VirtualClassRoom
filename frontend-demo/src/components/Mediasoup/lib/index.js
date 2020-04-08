@@ -19,35 +19,34 @@ class index extends MediasoupSdk {
   };  
  
   createConference = (name) => {
-    return new Promise(async (resolve, reject)=> {
-      try {
-        console.log("MediasoupServer", "createConference", `${name}`);
-        await this.signaling.createConference(name,(track)=>{
-            resolve(track);
-        });
-      } catch (error) {
-        console.error("MediasoupServer", "createConference", `${name}`, error);
-        reject(error);
-      }
-    });
+    try {
+      console.log("MediasoupServer", "createConference", `${name}`);
+      return this.signaling.createConference(name);
+    } catch (error) {
+      console.error("MediasoupServer", "createConference", `${name}`, error);
+      return false;
+    }
   };  
  
   broadcast = () => {
-    return new Promise(async (resolve, reject)=> {
-      try {
-        console.log("MediasoupServer", "broadcast");
-        await this.signaling.producerBroadcast((status)=>{
-            resolve(status);
-        });
-      } catch (error) {
-        console.error("MediasoupServer", "broadcast",  error);
-        reject(error);
-      }
-    });
+    try {
+      console.log("MediasoupServer", "broadcast");
+      return this.signaling.producerBroadcast();
+    } catch (error) {
+      console.error("MediasoupServer", "broadcast",  error);
+      return false;
+    }
   };
 
   joinConference = (conferenceId,routerId) => {
-    return new Promise(async (resolve, reject) => {
+    try {
+      console.log("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`);
+      return this.signaling.joinConference(conferenceId,routerId );
+    } catch (error) {
+      console.error("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`, error);
+      return false;
+    }
+    /* return new Promise(async (resolve, reject) => {
       try {
         console.log("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`);
         await this.signaling.joinConference(conferenceId,routerId,
@@ -59,7 +58,7 @@ class index extends MediasoupSdk {
         console.error("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`, error);
         reject(error);
       }
-    });
+    }); */
   };
 }
 

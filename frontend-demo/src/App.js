@@ -1,11 +1,11 @@
 import React from "react";
 import "./App.css";
 import NavBar from "./components/NavBar";
-
+import ClassRoom from './components/ClassRoom'
 function App() {
   return (
     <div>
-      <NavBar />
+      <ClassRoom />
     </div>
   );
 }

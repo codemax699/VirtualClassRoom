@@ -104,7 +104,7 @@ class MediasoupSdk {
       try {
         conferenceData.producerId = msg.producerId;
         if (subscribeEvents["onConferenceSuccess"])
-          subscribeEvents["onConferenceSuccess"](producer.track);
+          subscribeEvents["onConferenceSuccess"](msg);
       } catch (error) {
         console.error("MediasoupSdk", "onProducerCreate", error);
         if (subscribeEvents["onConferenceSuccess"])
@@ -236,10 +236,9 @@ class MediasoupSdk {
         return false;
       }
     },
-    joinConference: async (conferenceId, routerId, callback) => {
+    joinConference: async (conferenceId, routerId) => {
       try {
         isConsuming = true;
-        subscribeEvents["onJoinConferenceSuccess"] = callback;
         conferenceData.conferenceId = conferenceId;
         conferenceData.routerId = routerId;
         const reply = await this.signaling.getRouterCapabilities();
@@ -372,9 +371,8 @@ Once the receive transport is created, the client side application can consume m
         return false;
       }
     },
-    createConference: async (name, callback) => {
-      try {
-        subscribeEvents["onConferenceSuccess"] = callback;
+    createConference: async (name) => {
+      try {        
         const reply = await mySignaling.request("conference-create", {
           conferenceId: name,
         });
@@ -392,9 +390,8 @@ Once the receive transport is created, the client side application can consume m
         return false;
       }
     },
-    producerBroadcast: async (callback) => {
-      try {
-        subscribeEvents["onBroadcastSuccess"] = callback;
+    producerBroadcast: async () => {      try {
+        
         const reply = await mySignaling.request("producer-broadcast", {
           conferenceId: conferenceData.conferenceId,
           routerId: conferenceData.routerId,
