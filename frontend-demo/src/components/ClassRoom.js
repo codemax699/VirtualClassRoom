@@ -22,7 +22,7 @@ import ListItemIcon from "@material-ui/core/ListItemIcon";
 import ListItemText from "@material-ui/core/ListItemText";
 import Divider from "@material-ui/core/Divider";
 import InboxIcon from "@material-ui/icons/Inbox";
-import DraftsIcon from "@material-ui/icons/Drafts";
+import LocalVideo from './LocalVideo';
 
 const drawerWidth = 240;
 
@@ -106,14 +106,13 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export default function ClassRoom() {
-  const localVideoRef = React.createRef();
   const classes = useStyles();
   const [conferenceId, setConferenceId] = useState("");
   const [routerId, setRouterId] = useState("");
   const [consumers, setConsumers] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
   const [isConsumer, setIsConsumer] = useState(false);
-  const [eventMsg, setEventMsg] = useState(["ssfd"]);
+  const [eventMsg, setEventMsg] = useState(["--------------------------------"]);
+  const [mediaStream, setMediaStream] = useState({});
 
   const events = {
     onBroadcastSuccess:(val)=>{
@@ -146,10 +145,7 @@ export default function ClassRoom() {
     onMyStream: (mStream) => {
       try {
         console.log("SoftPhone", "events", "onMyStream");
-        localVideoRef.current.srcObject = mStream;
-        localVideoRef.current.addEventListener("loadeddata", (event) => {
-          setIsLoading(false);
-        });
+        setMediaStream(mStream);
       } catch (error) {
         console.error("SoftPhone", "events", "onMyStream", error);
       }
@@ -315,19 +311,7 @@ export default function ClassRoom() {
 
                   {!isConsumer && (
                     <Grid item>
-                      {isLoading && (
-                        <Grid item>
-                          <CircularProgress color="secondary" />
-                        </Grid>
-                      )}
-                      <Grid item>
-                        <video
-                          width={265}
-                          ref={localVideoRef}
-                          autoPlay
-                          playsInline
-                        ></video>
-                      </Grid>
+                      <LocalVideo id={"asffafsa"} mediaStream={mediaStream} onClick={()=>console.log('---------------')}/>  
                     </Grid>
                   )}
                   {isConsumer && (
