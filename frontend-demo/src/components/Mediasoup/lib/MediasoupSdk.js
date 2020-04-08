@@ -12,7 +12,7 @@ let conferenceData = {};
 let transportSetting = {};
 let subscribeEvents = {};
 let isConsuming = false;
-
+let sendTransportProduceEvent = {};
 class MediasoupSdk {
   constructor() {
     try {
@@ -103,32 +103,38 @@ class MediasoupSdk {
     onProducerCreate: (msg) => {
       try {
         conferenceData.producerId = msg.producerId;
+
+        if (sendTransportProduceEvent.callback)
+          sendTransportProduceEvent.callback({ id: msg.producerId });
+
         if (subscribeEvents["onConferenceSuccess"])
           subscribeEvents["onConferenceSuccess"](msg);
       } catch (error) {
         console.error("MediasoupSdk", "onProducerCreate", error);
+        if (sendTransportProduceEvent.errback)
+          sendTransportProduceEvent.errback();
         if (subscribeEvents["onConferenceSuccess"])
           subscribeEvents["onConferenceSuccess"](null);
       }
     },
-    onConsumerCreate:  (msg) => {
+    onConsumerCreate: (msg) => {
       try {
-        if(msg && msg.consumerDetails && msg.consumerDetails.consumers){
-          msg.consumerDetails.consumers.map(async (item)=>{
+        if (msg && msg.consumerDetails && msg.consumerDetails.consumers) {
+          msg.consumerDetails.consumers.map(async (item) => {
             consumer = await recvTransport.consume({
               id: item.consumer.consumerId,
               producerId: item.producer.producerId,
               kind: item.consumer.kind,
               rtpParameters: item.consumer.rtpParameters,
             });
-    
+
             consumer.on("transportclose", () =>
               this.communicatingActionsEvents("transportclose-consumer")
             );
             consumer.on("producerclose", () =>
               this.communicatingActionsEvents("producerclose")
             );
-    
+
             consumer.on("producerpause", () =>
               console.log(
                 "MediasoupSdk",
@@ -148,14 +154,14 @@ class MediasoupSdk {
               console.log("MediasoupSdk", "layers ")
             );
             consumer.on("trace", (trace) => console.log("MediasoupSdk", trace));
-    
+
             if (subscribeEvents["newConsumer"])
               subscribeEvents["newConsumer"](consumer);
           });
-        }else{
+        } else {
           console.error("MediasoupSdk", "onConsumerCreate-invalid data");
         }
-        
+
         /* consumer = await recvTransport.consume({
           id: msg.transportId,
           producerId: conferenceData.producerId,
@@ -283,6 +289,7 @@ class MediasoupSdk {
     ) => {
       try {
         console.log("MediasoupSdk", "sendTransportProduce");
+        sendTransportProduceEvent = { callback, errback };
 
         const reply = await mySignaling.request("producer-create", {
           conferenceId: conferenceData.conferenceId,
@@ -302,10 +309,10 @@ class MediasoupSdk {
           }`
         );
 
-        callback();
+        // callback();
       } catch (error) {
         console.error("MediasoupSdk", "sendTransportProduce", error);
-        errback();
+        // errback();
       }
     },
 
@@ -372,7 +379,7 @@ Once the receive transport is created, the client side application can consume m
       }
     },
     createConference: async (name) => {
-      try {        
+      try {
         const reply = await mySignaling.request("conference-create", {
           conferenceId: name,
         });
@@ -390,8 +397,8 @@ Once the receive transport is created, the client side application can consume m
         return false;
       }
     },
-    producerBroadcast: async () => {      try {
-        
+    producerBroadcast: async () => {
+      try {
         const reply = await mySignaling.request("producer-broadcast", {
           conferenceId: conferenceData.conferenceId,
           routerId: conferenceData.routerId,
@@ -546,7 +553,7 @@ Once the receive transport is created, the client side application can consume m
         codecOptions: {
           videoGoogleStartBitrate: 1000,
         },
-        stopTracks: false
+        stopTracks: false,
       });
 
       //,      codec:device.rtpCapabilities.codecs
@@ -573,8 +580,7 @@ Once the receive transport is created, the client side application can consume m
         "producingMedia",
         `Recv Transporter Crate Successfully. ${JSON.stringify(producer)}`
       );
-      if (subscribeEvents["onMyStream"])
-      subscribeEvents["onMyStream"](mStream);
+      if (subscribeEvents["onMyStream"]) subscribeEvents["onMyStream"](mStream);
       return true;
     } catch (error) {
       console.error("MediasoupSdk", "producingMedia", error);
