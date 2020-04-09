@@ -102,7 +102,8 @@ class MediasoupSdk {
     },
     onProducerCreate: (msg) => {
       try {
-        conferenceData.producerId = msg.producerId;
+       // conferenceData.producerId = msg.producerId;
+        conferenceData.producerId = msg.rawId; 
 
         if (sendTransportProduceEvent.callback)
           sendTransportProduceEvent.callback({ id: msg.producerId });

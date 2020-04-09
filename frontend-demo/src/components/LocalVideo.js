@@ -8,7 +8,7 @@ const LocalVideo = ({ id, mediaStream, onClick }) => {
   useEffect(() => {
     try {
       setIsLoading(true);
-      if(localVideoRef.current){
+      if(localVideoRef.current && mediaStream){
         localVideoRef.current.srcObject = mediaStream;
         localVideoRef.current.addEventListener("loadeddata", (event) => {
           setIsLoading(false);
