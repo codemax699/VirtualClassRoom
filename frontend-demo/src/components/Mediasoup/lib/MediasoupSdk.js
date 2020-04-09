@@ -123,8 +123,10 @@ class MediasoupSdk {
         if (msg && msg.consumerDetails && msg.consumerDetails.consumers) {
           msg.consumerDetails.consumers.map(async (item) => {
             consumer = await recvTransport.consume({
-              id: item.consumer.consumerId,
-              producerId: item.producer.producerId,
+              /* id: item.consumer.consumerId,
+              producerId: item.producer.producerId, */
+              id: item.consumer.rawId,
+              producerId: item.producer.rawId,
               kind: item.consumer.kind,
               rtpParameters: item.consumer.rtpParameters,
             });
@@ -292,6 +294,10 @@ class MediasoupSdk {
         console.log("MediasoupSdk", "sendTransportProduce");
         sendTransportProduceEvent = { callback, errback };
 
+        /* const data = await socket.request('createProducerTransport', {
+          forceTcp: false,
+          rtpCapabilities: device.rtpCapabilities,
+        }); */
         const reply = await mySignaling.request("producer-create", {
           conferenceId: conferenceData.conferenceId,
           kind,
@@ -496,6 +502,13 @@ Once the receive transport is created, the client side application can consume m
       sendTransport.on("routerclose", () =>
         this.communicatingActionsEvents("routerclose")
       );
+      sendTransport.on('connectionstatechange', (state) => {
+        console.log(
+          "MediasoupSdk",
+          "creatingTransports","sendTransport"
+          `${state}`
+        );
+      });
 
       recvTransport = device.createRecvTransport({
         id: id,
@@ -510,7 +523,18 @@ Once the receive transport is created, the client side application can consume m
         this.communicatingActionsEvents("routerclose-recv")
       );
 
-      console.log("MediasoupSdk", "creatingTransports");
+      recvTransport.on('connectionstatechange', (state) => {
+        console.log(
+          "MediasoupSdk",
+          "creatingTransports","connectionstatechange"
+          `${state}`
+        );
+      });
+
+      console.log(
+        "MediasoupSdk",
+        "creatingTransports","recvTransport"
+      );
       return true;
     } catch (error) {
       console.error("MediasoupSdk", "creatingTransports", error);
@@ -554,7 +578,7 @@ Once the receive transport is created, the client side application can consume m
         codecOptions: {
           videoGoogleStartBitrate: 1000,
         },
-        stopTracks: false,
+        stopTracks: true,
       });
 
       //,      codec:device.rtpCapabilities.codecs

@@ -112,7 +112,7 @@ export default function ClassRoom() {
   const [consumers, setConsumers] = useState({});
   const [isConsumer, setIsConsumer] = useState(false);
   const [eventMsg, setEventMsg] = useState(["--------------------------------"]);
-  const [mediaStream, setMediaStream] = useState({});
+  const [mediaStream, setMediaStream] = useState();
 
   const events = {
     onBroadcastSuccess:(val)=>{
