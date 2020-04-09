@@ -325,9 +325,9 @@ class MediasoupSdk {
 
     recvTransportConnect: async ({ dtlsParameters }, callback, errback) => {
       try {
-        console.log("MediasoupSdk", "sendTransportConnect");
+        console.log("MediasoupSdk", "recvTransportConnect");
 
-        await mySignaling.request("connectConsumerTransport", {
+        await mySignaling.request("transport-connect", {
           conferenceId: conferenceData.conferenceId,
           type: isConsuming ? "consumer" : "producer",
           routerId: conferenceData.routerId,
@@ -338,7 +338,7 @@ class MediasoupSdk {
 
         callback();
       } catch (error) {
-        console.error("MediasoupSdk", "sendTransportConnect", error);
+        console.error("MediasoupSdk", "recvTransportConnect", error);
         errback();
       }
     },
