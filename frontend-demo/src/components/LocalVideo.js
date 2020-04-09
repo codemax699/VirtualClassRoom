@@ -8,10 +8,15 @@ const LocalVideo = ({ id, mediaStream, onClick }) => {
   useEffect(() => {
     try {
       setIsLoading(true);
-      localVideoRef.current.srcObject = mediaStream;
-      localVideoRef.current.addEventListener("loadeddata", (event) => {
-        setIsLoading(false);
-      });
+      if(localVideoRef.current){
+        localVideoRef.current.srcObject = mediaStream;
+        localVideoRef.current.addEventListener("loadeddata", (event) => {
+          setIsLoading(false);
+        });
+      }
+      else{
+        console.log("LocalVideo","useEffect","Video Element Not Binding");
+      }
     } catch (ex) {
       console.error(ex);
     }
