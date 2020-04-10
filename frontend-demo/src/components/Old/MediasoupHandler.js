@@ -1,5 +1,5 @@
 import { Device } from "mediasoup-client";
-import { SocketClient } from "./Mediasoup/lib/SocketClient";
+import { SocketClient } from "../Mediasoup/lib/SocketClient";
 
 let sendTransport = {};
 let recvTransport = {};

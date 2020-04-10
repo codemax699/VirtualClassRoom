@@ -1,5 +1,5 @@
 import { types as mediasoupTypes } from "mediasoup-client";
-import { SocketClient } from "./SocketClient";
+import { SocketClient } from "../Mediasoup/lib/SocketClient";
 
 let producer = {};
 let consumer = {};
@@ -50,7 +50,6 @@ class MediasoupSdk {
           conferenceId: msg.conferenceId,
           routerId: msg.routerId,
         };
-
         await this.signaling.getRouterCapabilities();
       } catch (error) {
         console.error("MediasoupSdk", "onConferenceCreate", error);
@@ -86,20 +85,15 @@ class MediasoupSdk {
         )
           throw new Error("Fail To createSendTransport");
 
-        
         if (isConsuming) {
           this.signaling.consumingMedia();
           if (subscribeEvents["onJoinConferenceSuccess"]) {
             subscribeEvents["onJoinConferenceSuccess"](); //in this version only user can act as broadcaster or consumer
           }
           return;
-        }else{
-          msg.routerId = conferenceData.routerId; 
-          if (subscribeEvents["onConferenceSuccess"])
-          subscribeEvents["onConferenceSuccess"](msg);
         }
 
-        //if (!this.producingMedia()) throw new Error("Fail To producingMedia");
+        if (!this.producingMedia()) throw new Error("Fail To producingMedia");
       } catch (error) {
         console.error("MediasoupSdk", "onTransportCreate", error);
         if (subscribeEvents["onConferenceSuccess"])
@@ -108,15 +102,20 @@ class MediasoupSdk {
     },
     onProducerCreate: (msg) => {
       try {
-        // conferenceData.producerId = msg.producerId;
-        conferenceData.producerId = msg.rawId;
+       // conferenceData.producerId = msg.producerId;
+        conferenceData.producerId = msg.rawId; 
 
         if (sendTransportProduceEvent.callback)
           sendTransportProduceEvent.callback({ id: msg.producerId });
+
+        if (subscribeEvents["onConferenceSuccess"])
+          subscribeEvents["onConferenceSuccess"](msg);
       } catch (error) {
         console.error("MediasoupSdk", "onProducerCreate", error);
         if (sendTransportProduceEvent.errback)
           sendTransportProduceEvent.errback();
+        if (subscribeEvents["onConferenceSuccess"])
+          subscribeEvents["onConferenceSuccess"](null);
       }
     },
     onConsumerCreate: (msg) => {
@@ -262,7 +261,7 @@ class MediasoupSdk {
         return reply;
       } catch (error) {
         console.error("MediasoupSdk", "joinConference", error);
-        return false;
+        return null;
       }
     },
     getRouterCapabilities: async () => {
@@ -386,16 +385,6 @@ Once the receive transport is created, the client side application can consume m
         return false;
       }
     },
-
-    startConsumingMedia: async () => {
-      try {
-        isConsuming = true;
-        return await this.signaling.sendCreateTransportRequest();
-      } catch (error) {
-        console.error("MediasoupSdk", "startConsumingMedia", error);
-        return false;
-      }
-    },
     createConference: async (name) => {
       try {
         const reply = await mySignaling.request("conference-create", {
@@ -513,11 +502,11 @@ Once the receive transport is created, the client side application can consume m
       sendTransport.on("routerclose", () =>
         this.communicatingActionsEvents("routerclose")
       );
-      sendTransport.on("connectionstatechange", (state) => {
+      sendTransport.on('connectionstatechange', (state) => {
         console.log(
           "MediasoupSdk",
-          "creatingTransports",
-          "sendTransport"`${state}`
+          "creatingTransports","sendTransport"
+          `${state}`
         );
       });
 
@@ -534,15 +523,18 @@ Once the receive transport is created, the client side application can consume m
         this.communicatingActionsEvents("routerclose-recv")
       );
 
-      recvTransport.on("connectionstatechange", (state) => {
+      recvTransport.on('connectionstatechange', (state) => {
         console.log(
           "MediasoupSdk",
-          "creatingTransports",
-          "connectionstatechange"`${state}`
+          "creatingTransports","connectionstatechange"
+          `${state}`
         );
       });
 
-      console.log("MediasoupSdk", "creatingTransports", "recvTransport");
+      console.log(
+        "MediasoupSdk",
+        "creatingTransports","recvTransport"
+      );
       return true;
     } catch (error) {
       console.error("MediasoupSdk", "creatingTransports", error);
@@ -553,7 +545,7 @@ Once the receive transport is created, the client side application can consume m
   /*
   Once the send transport is created, the client side application can produce multiple audio and video tracks on it.
   */
-  producingMedia = async (video, audio) => {
+  producingMedia = async () => {
     try {
       async function getUserMedia() {
         if (!device.canProduce("video")) {
@@ -563,10 +555,7 @@ Once the receive transport is created, the client side application can consume m
 
         let stream;
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: video,
-            audio: audio,
-          });
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
         } catch (err) {
           console.error("getUserMedia() failed:", err.message);
           throw err;

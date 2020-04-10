@@ -38,6 +38,16 @@ class index extends MediasoupSdk {
     }
   };
 
+  consumingMedia = (conferenceId,routerId) => {
+    try {
+      console.log("MediasoupServer", "consumingMedia");
+      return this.signaling.startConsumingMedia(conferenceId,routerId);
+    } catch (error) {
+      console.error("MediasoupServer", "consumingMedia",  error);
+      return false;
+    }
+  };
+
   joinConference = (conferenceId,routerId) => {
     try {
       console.log("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`);
@@ -64,8 +74,8 @@ class index extends MediasoupSdk {
 
 let mediasoupIndex = new index();
 const mediasoup = {
-  server : { broadcast :mediasoupIndex.broadcast ,createConference :mediasoupIndex.createConference ,initialize:mediasoupIndex.initialize },
-  client : { joinConference :mediasoupIndex.joinConference ,initialize:mediasoupIndex.initialize }
+  server : { broadcast :mediasoupIndex.broadcast ,createConference :mediasoupIndex.createConference ,initialize:mediasoupIndex.initialize,producingMedia:mediasoupIndex.producingMedia },
+  client : { joinConference :mediasoupIndex.joinConference ,consumingMedia:mediasoupIndex.consumingMedia,initialize:mediasoupIndex.initialize }
 } 
 export default mediasoup;
 

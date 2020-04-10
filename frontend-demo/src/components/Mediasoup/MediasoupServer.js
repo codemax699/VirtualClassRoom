@@ -31,7 +31,11 @@ class MediasoupServer extends MediasoupSdk {
       }
     });
   };  
- 
+  
+  producingMedia=(video,audio)=>{
+    return this.producingMedia(video,audio);
+  }  
+
   broadcast = () => {
     return new Promise(async (resolve, reject)=> {
       try {
