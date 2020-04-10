@@ -1,6 +1,5 @@
 import MediasoupSdk from "./MediasoupSdk";
 
-
 class index extends MediasoupSdk {
   constructor() {
     // call the MediasoupSdk constructor
@@ -10,14 +9,13 @@ class index extends MediasoupSdk {
   initialize = (callBackEvents) => {
     try {
       console.log("MediasoupServer", "createConference");
-    return  this.initializeSDK(callBackEvents);
-
+      return this.initializeSDK(callBackEvents);
     } catch (error) {
-      console.error("MediasoupServer", "createConference",  error);
+      console.error("MediasoupServer", "createConference", error);
       return false;
     }
-  };  
- 
+  };
+
   createConference = (name) => {
     try {
       console.log("MediasoupServer", "createConference", `${name}`);
@@ -26,14 +24,14 @@ class index extends MediasoupSdk {
       console.error("MediasoupServer", "createConference", `${name}`, error);
       return false;
     }
-  };  
- 
+  };
+
   broadcast = () => {
     try {
       console.log("MediasoupServer", "broadcast");
       return this.signaling.producerBroadcast();
     } catch (error) {
-      console.error("MediasoupServer", "broadcast",  error);
+      console.error("MediasoupServer", "broadcast", error);
       return false;
     }
   };
@@ -43,17 +41,26 @@ class index extends MediasoupSdk {
       console.log("MediasoupServer", "consumingMedia");
       return this.signaling.startConsumingMedia();
     } catch (error) {
-      console.error("MediasoupServer", "consumingMedia",  error);
+      console.error("MediasoupServer", "consumingMedia", error);
       return false;
     }
   };
 
-  joinConference = (conferenceId,routerId) => {
+  joinConference = (conferenceId, routerId) => {
     try {
-      console.log("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`);
-      return this.signaling.joinConference(conferenceId,routerId );
+      console.log(
+        "MediasoupClient",
+        "joinConference",
+        `conferenceId :${conferenceId}, routerId : ${routerId}`
+      );
+      return this.signaling.joinConference(conferenceId, routerId);
     } catch (error) {
-      console.error("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`, error);
+      console.error(
+        "MediasoupClient",
+        "joinConference",
+        `conferenceId :${conferenceId}, routerId : ${routerId}`,
+        error
+      );
       return false;
     }
     /* return new Promise(async (resolve, reject) => {
@@ -74,8 +81,16 @@ class index extends MediasoupSdk {
 
 let mediasoupIndex = new index();
 const mediasoup = {
-  server : { broadcast :mediasoupIndex.broadcast ,createConference :mediasoupIndex.createConference ,initialize:mediasoupIndex.initialize,producingMedia:mediasoupIndex.producingMedia },
-  client : { joinConference :mediasoupIndex.joinConference ,consumingMedia:mediasoupIndex.consumingMedia,initialize:mediasoupIndex.initialize }
-} 
+  server: {
+    broadcast: mediasoupIndex.broadcast,
+    createConference: mediasoupIndex.createConference,
+    initialize: mediasoupIndex.initialize,
+    producingMedia: mediasoupIndex.producingMedia,
+  },
+  client: {
+    joinConference: mediasoupIndex.joinConference,
+    consumingMedia: mediasoupIndex.consumingMedia,
+    initialize: mediasoupIndex.initialize,
+  },
+};
 export default mediasoup;
-

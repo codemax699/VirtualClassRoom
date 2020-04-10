@@ -1,4 +1,4 @@
-import {socketClient} from '../../../config/mediasoupConfig';
+import { socketClient } from "../../../config/mediasoupConfig";
 
 let webSocket;
 let messageListener;
@@ -7,8 +7,12 @@ export class SocketClient {
     webSocket = new WebSocket(socketClient.path);
     messageListener = listener;
     webSocket.onopen = function (e) {
-      console.log("SocketClient", "onopen", `Socket Connected With ${socketClient.path}`);
-    };    
+      console.log(
+        "SocketClient",
+        "onopen",
+        `Socket Connected With ${socketClient.path}`
+      );
+    };
 
     webSocket.onclose = function (event) {
       if (event.wasClean) {
@@ -31,7 +35,7 @@ export class SocketClient {
       console.error("SocketClient", "onerror", error);
     };
 
-    webSocket.onmessage = (event)=> {
+    webSocket.onmessage = (event) => {
       try {
         console.log("SocketClient", "messageProcessor", `${event.data}`);
         const msg = JSON.parse(event.data);
@@ -52,7 +56,6 @@ export class SocketClient {
             break;
           }
           case "transport-connect": {
-            
             break;
           }
           case "producer-create": {
@@ -62,7 +65,7 @@ export class SocketClient {
           }
           case "consumer-create": {
             if (messageListener && messageListener.onConsumerCreate)
-            messageListener.onConsumerCreate(msg);
+              messageListener.onConsumerCreate(msg);
             break;
           }
           case "media-broadcast": {
@@ -98,8 +101,6 @@ export class SocketClient {
       }
     };
   }
-
- 
 
   subscribeEventHandler(name, handler) {
     this._eventHandlers[name] = handler;

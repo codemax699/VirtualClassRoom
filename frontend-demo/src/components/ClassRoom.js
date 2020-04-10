@@ -211,9 +211,7 @@ export default function CenteredGrid() {
     <div className={classes.root}>
       <AppBar position="static">
         <ToolBar>
-          <Typography color="inherit">
-            Virtual Class Room
-          </Typography>
+          <Typography color="inherit">Virtual Class Room</Typography>
         </ToolBar>
       </AppBar>
 

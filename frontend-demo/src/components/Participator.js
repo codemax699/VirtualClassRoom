@@ -11,13 +11,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Participator = ({
-  id,
-  fullName,
-  status,
-  mediaStream,
-  onClick,
-}) => {
+const Participator = ({ id, fullName, status, mediaStream, onClick }) => {
   const videoRef = React.createRef();
   const [isLoading, setIsLoading] = useState(true);
   const classes = useStyles();
@@ -32,7 +26,7 @@ const Participator = ({
     } catch (ex) {
       console.error(ex);
     }
-  }, [mediaStream,videoRef]);
+  }, [mediaStream, videoRef]);
   return (
     <>
       <div
