@@ -22,7 +22,7 @@ class MediasoupClient extends MediasoupSdk {
     return new Promise(async (resolve, reject) => {
       try {
         console.log("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`);
-        await super.signaling.getRouterCapabilities(conferenceId,routerId,
+        await super.signaling.joinConference(conferenceId,routerId,
           (track) => {
             resolve(track);
           }
