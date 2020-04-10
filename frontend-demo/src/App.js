@@ -1,7 +1,7 @@
 import React from "react";
 import "./App.css";
 import NavBar from "./components/NavBar";
-import ClassRoom from './components/ClassRoom'
+import ClassRoom from './components/Mediasoup/ClassRoom'
 function App() {
   return (
     <div>
