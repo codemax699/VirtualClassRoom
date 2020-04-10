@@ -9,7 +9,8 @@ import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
 import LocalVideo from "./LocalVideo";
 import Participator from "./Participator";
-import mediasoup from "./Mediasoup/lib/index";
+import mediasoupSdk from "./Mediasoup/lib/index";
+import ButtonGroup from "@material-ui/core/ButtonGroup";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -28,6 +29,7 @@ export default function CenteredGrid() {
   const [conferenceId, setConferenceId] = useState("");
   const [routerId, setRouterId] = useState("");
   const [consumers, setConsumers] = useState({});
+  const [isProducer, setIsProducer] = useState(false);
   const [isConsumer, setIsConsumer] = useState(false);
   const [video, setVideo] = useState(false);
   const [audio, setAudio] = useState(false);
@@ -35,11 +37,9 @@ export default function CenteredGrid() {
     "--------------------------------",
   ]);
   const [mediaStream, setMediaStream] = useState();
-
+  let mediasoup;
   useEffect(() => {
     try {
-      serverInit();
-      clientInit();
     } catch (ex) {
       console.error(ex);
     }
@@ -195,19 +195,23 @@ export default function CenteredGrid() {
 
   const clientInit = () => {
     setIsConsumer(true);
-    mediasoup.client.initialize(events);
+    setIsProducer(false);
+    mediasoup = mediasoupSdk.client;
+    mediasoup.initialize(events);
   };
 
   const serverInit = () => {
+    setIsProducer(true);
     setIsConsumer(false);
-    mediasoup.server.initialize(events);
+    mediasoup = mediasoupSdk.server;
+    mediasoup.initialize(events);
   };
 
   return (
     <div className={classes.root}>
       <AppBar position="static">
         <ToolBar>
-          <Typography variant="title" color="inherit">
+          <Typography color="inherit">
             Virtual Class Room
           </Typography>
         </ToolBar>
@@ -218,8 +222,36 @@ export default function CenteredGrid() {
 
         <Grid item xs={12}>
           <Paper className={classes.paper}>
+            <ButtonGroup
+              color="primary"
+              aria-label="outlined primary button group"
+            >
+              <Button
+                color={isProducer ? "secondary" : "primary"}
+                onClick={() => {
+                  serverInit();
+                }}
+              >
+                Producer Initialization{" "}
+              </Button>
+              <Button>||</Button>
+              <Button
+                color={isConsumer ? "secondary" : "primary"}
+                onClick={() => {
+                  clientInit();
+                }}
+              >
+                Consumer Initialization
+              </Button>
+            </ButtonGroup>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12}></Grid>
+        <Grid item xs={12}>
+          <Paper className={classes.paper}>
             <TextField
-              id="standard-full-width"
+              id="standard-full-width121212"
               label="conference Name"
               style={{ margin: 8 }}
               placeholder="conference Name"
@@ -230,19 +262,21 @@ export default function CenteredGrid() {
                 setConferenceId(e.target.value);
               }}
             />
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => {
-                if (!conferenceId) {
-                  alert("Please Enter Conference Name");
-                  return;
-                }
-                mediasoup.server.createConference(conferenceId, events);
-              }}
-            >
-              Start Conference
-            </Button>
+            {isProducer && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  if (!conferenceId) {
+                    alert("Please Enter Conference Name");
+                    return;
+                  }
+                  mediasoup.createConference(conferenceId, events);
+                }}
+              >
+                Start Conference
+              </Button>
+            )}
           </Paper>
         </Grid>
 
@@ -258,28 +292,34 @@ export default function CenteredGrid() {
               fullWidth
               variant="outlined"
               value={routerId}
+              onChange={(e) => {
+                if (isConsumer) setRouterId(e.target.value);
+              }}
             />
           </Paper>
         </Grid>
 
         <Grid item xs={12}></Grid>
 
-        <Grid item xs={12}>
-          <Paper className={classes.paper}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                Host View
+        {isProducer && routerId && (
+          <Grid item xs={12}>
+            <Paper className={classes.paper}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  Host View
+                </Grid>
+                <Grid item xs={12}>
+                  <LocalVideo
+                    id={"asffafsa"}
+                    mediaStream={mediaStream}
+                    onClick={() => console.log("---------------")}
+                  />
+                </Grid>
               </Grid>
-              <Grid item xs={12}>
-                <LocalVideo
-                  id={"asffafsa"}
-                  mediaStream={mediaStream}
-                  onClick={() => console.log("---------------")}
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
+            </Paper>
+          </Grid>
+        )}
+
         <Grid item xs={12}></Grid>
 
         <Grid item xs={12}>
@@ -306,85 +346,87 @@ export default function CenteredGrid() {
         </Grid>
         <Grid item xs={12}></Grid>
 
-        <Grid item xs={6}>
-          <Paper className={classes.paper}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                Host View
-              </Grid>
+        {isProducer && routerId && (
+          <Grid item xs={6}>
+            <Paper className={classes.paper}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  Host View
+                </Grid>
 
-              <Grid item xs={3}>
-                <Button
-                  variant="contained"
-                  color={video ? "secondary" : "primary"}
-                  onClick={() => {
-                    setVideo(!video);
-                  }}
-                >
-                  Video
-                </Button>
+                <Grid item xs={3}>
+                  <Button
+                    variant="contained"
+                    color={video ? "secondary" : "primary"}
+                    onClick={() => {
+                      setVideo(!video);
+                    }}
+                  >
+                    Video
+                  </Button>
+                </Grid>
+                <Grid item xs={3}>
+                  <Button
+                    variant="contained"
+                    color={audio ? "secondary" : "primary"}
+                    onClick={() => {
+                      setAudio(!audio);
+                    }}
+                  >
+                    Audio
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                      if (!mediasoup.producingMedia(video, audio)) {
+                        alert("Fail To Create Producer ");
+                      }
+                    }}
+                  >
+                    Start
+                  </Button>
+                </Grid>
               </Grid>
-              <Grid item xs={3}>
-                <Button
-                  variant="contained"
-                  color={audio ? "secondary" : "primary"}
-                  onClick={() => {
-                    setAudio(!audio);
-                  }}
-                >
-                  Audio
-                </Button>
-              </Grid>
-              <Grid item xs={6}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    if (!mediasoup.server.producingMedia(video, audio)) {
-                      alert("Fail To Create Producer ");
-                    }
-                  }}
-                >
-                  Start
-                </Button>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
+            </Paper>
+          </Grid>
+        )}
 
-        <Grid item xs={6}>
-          <Paper className={classes.paper}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                Consumers
-              </Grid>
+        {(isProducer || isConsumer) && routerId && (
+          <Grid item xs={isConsumer ? 12 : 6}>
+            <Paper className={classes.paper}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  Consumers
+                </Grid>
 
-              <Grid item xs={12}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    if (!conferenceId) {
-                      alert("No Conference ID ");
-                      return;
-                    }
-                    if (!routerId) {
-                      alert("No Router ID ");
-                      return;
-                    }
-                    if (
-                      !mediasoup.client.consumingMedia(conferenceId, routerId)
-                    ) {
-                      alert("Fail To Create Consumer ");
-                    }
-                  }}
-                >
-                  Start
-                </Button>
+                <Grid item xs={12}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                      if (!conferenceId) {
+                        alert("No Conference ID ");
+                        return;
+                      }
+                      if (!routerId) {
+                        alert("No Router ID ");
+                        return;
+                      }
+                      if (!mediasoup.consumingMedia(conferenceId, routerId)) {
+                        alert("Fail To Create Consumer ");
+                      }
+                    }}
+                  >
+                    Start
+                  </Button>
+                </Grid>
               </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
+            </Paper>
+          </Grid>
+        )}
       </Grid>
     </div>
   );

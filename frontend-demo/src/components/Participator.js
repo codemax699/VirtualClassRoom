@@ -32,7 +32,7 @@ const Participator = ({
     } catch (ex) {
       console.error(ex);
     }
-  }, [mediaStream]);
+  }, [mediaStream,videoRef]);
   return (
     <>
       <div

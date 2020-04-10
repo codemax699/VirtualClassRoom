@@ -86,20 +86,17 @@ class MediasoupSdk {
         )
           throw new Error("Fail To createSendTransport");
 
-        
         if (isConsuming) {
           this.signaling.consumingMedia();
           if (subscribeEvents["onJoinConferenceSuccess"]) {
             subscribeEvents["onJoinConferenceSuccess"](); //in this version only user can act as broadcaster or consumer
           }
           return;
-        }else{
-          msg.routerId = conferenceData.routerId; 
+        } else {
+          msg.routerId = conferenceData.routerId;
           if (subscribeEvents["onConferenceSuccess"])
-          subscribeEvents["onConferenceSuccess"](msg);
+            subscribeEvents["onConferenceSuccess"](msg);
         }
-
-        //if (!this.producingMedia()) throw new Error("Fail To producingMedia");
       } catch (error) {
         console.error("MediasoupSdk", "onTransportCreate", error);
         if (subscribeEvents["onConferenceSuccess"])
@@ -500,49 +497,58 @@ Once the receive transport is created, the client side application can consume m
     sctpParameters,
   }) => {
     try {
-      sendTransport = device.createSendTransport({
-        id: id,
-        iceParameters: iceParameters,
-        iceCandidates: iceCandidates,
-        dtlsParameters: dtlsParameters,
-        sctpParameters: sctpParameters,
-      });
+      if (isConsuming) {
+        recvTransport = device.createRecvTransport({
+          id: id,
+          iceParameters: iceParameters,
+          iceCandidates: iceCandidates,
+          dtlsParameters: dtlsParameters,
+          sctpParameters: sctpParameters,
+        });
 
-      sendTransport.on("connect", this.signaling.sendTransportConnect);
-      sendTransport.on("produce", this.signaling.sendTransportProduce);
-      sendTransport.on("routerclose", () =>
-        this.communicatingActionsEvents("routerclose")
-      );
-      sendTransport.on("connectionstatechange", (state) => {
-        console.log(
-          "MediasoupSdk",
-          "creatingTransports",
-          "sendTransport"`${state}`
+        recvTransport.on("connect", this.signaling.recvTransportConnect);
+        recvTransport.on("routerclose", () =>
+          this.communicatingActionsEvents("routerclose-recv")
         );
-      });
 
-      recvTransport = device.createRecvTransport({
-        id: id,
-        iceParameters: iceParameters,
-        iceCandidates: iceCandidates,
-        dtlsParameters: dtlsParameters,
-        sctpParameters: sctpParameters,
-      });
+        recvTransport.on("connectionstatechange", (state) => {
+          console.log(
+            "MediasoupSdk",
+            "creatingTransports",
+            "RecvTransport",
+            "connectionstatechange",
+            `${state}`
+          );
+        });
 
-      recvTransport.on("connect", this.signaling.recvTransportConnect);
-      recvTransport.on("routerclose", () =>
-        this.communicatingActionsEvents("routerclose-recv")
-      );
+        console.log("MediasoupSdk", "creatingTransports", "RecvTransport");
+      } else {
+        sendTransport = device.createSendTransport({
+          id: id,
+          iceParameters: iceParameters,
+          iceCandidates: iceCandidates,
+          dtlsParameters: dtlsParameters,
+          sctpParameters: sctpParameters,
+        });
 
-      recvTransport.on("connectionstatechange", (state) => {
-        console.log(
-          "MediasoupSdk",
-          "creatingTransports",
-          "connectionstatechange"`${state}`
+        sendTransport.on("connect", this.signaling.sendTransportConnect);
+        sendTransport.on("produce", this.signaling.sendTransportProduce);
+        sendTransport.on("routerclose", () =>
+          this.communicatingActionsEvents("routerclose")
         );
-      });
+        sendTransport.on("connectionstatechange", (state) => {
+          console.log(
+            "MediasoupSdk",
+            "creatingTransports",
+            "sendTransport",
+            "connectionstatechange",
+            `${state}`
+          );
+        });
 
-      console.log("MediasoupSdk", "creatingTransports", "recvTransport");
+        console.log("MediasoupSdk", "creatingTransports", "sendTransport");
+      }
+      console.log("MediasoupSdk", "creatingTransports");
       return true;
     } catch (error) {
       console.error("MediasoupSdk", "creatingTransports", error);

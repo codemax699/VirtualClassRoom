@@ -20,7 +20,7 @@ const LocalVideo = ({ id, mediaStream, onClick }) => {
     } catch (ex) {
       console.error(ex);
     }
-  }, [mediaStream]);
+  }, [mediaStream,localVideoRef]);
   return (
     <>
       <div

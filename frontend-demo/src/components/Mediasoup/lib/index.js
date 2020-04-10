@@ -38,10 +38,10 @@ class index extends MediasoupSdk {
     }
   };
 
-  consumingMedia = (conferenceId,routerId) => {
+  consumingMedia = () => {
     try {
       console.log("MediasoupServer", "consumingMedia");
-      return this.signaling.startConsumingMedia(conferenceId,routerId);
+      return this.signaling.startConsumingMedia();
     } catch (error) {
       console.error("MediasoupServer", "consumingMedia",  error);
       return false;
