@@ -39,6 +39,8 @@ export default function CenteredGrid() {
   const [audioStream, setAudioStream] = useState();
   const [producerState, setProducerState] = useState();
   const [phone, setPhone] = useState();
+  const [isConferenceClick, setIsConferenceClick] = useState(false);
+
   useEffect(() => {
     try {
     } catch (ex) {
@@ -276,6 +278,7 @@ export default function CenteredGrid() {
                     alert("Please Enter Conference Name");
                     return;
                   }
+                  setIsConferenceClick(true);
                   phone.producerHandle.createConference(conferenceId, events);
                 }}
               >
@@ -298,7 +301,7 @@ export default function CenteredGrid() {
               variant="outlined"
               value={routerId}
               onChange={(e) => {
-                if (isConsumer) setRouterId(e.target.value);
+                if (!isConferenceClick) setRouterId(e.target.value);
               }}
             />
           </Paper>
@@ -388,8 +391,8 @@ export default function CenteredGrid() {
                   <Button
                     variant="contained"
                     color="primary"
-                    onClick={() => {
-                      if (!phone.producerHandle.publishMedia(kind)) {
+                    onClick={() => {                      
+                      if (!phone.producerHandle.publishMedia(kind,isConferenceClick?null:conferenceId,isConferenceClick?null:routerId)) {
                         alert("Fail To Create Producer ");
                       }
                     }}

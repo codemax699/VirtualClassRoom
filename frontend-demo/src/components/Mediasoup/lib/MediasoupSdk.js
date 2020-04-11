@@ -408,7 +408,7 @@ Once the receive transport is created, the client side application can consume m
           routerId: conferenceData.routerId,
           transportId: transportSetting.transportId,
           rtpParams: capabilities,
-          consumeType:kind
+          consumeType: kind,
         });
 
         console.log(
@@ -423,7 +423,7 @@ Once the receive transport is created, the client side application can consume m
       }
     },
 
-    startConsumingMedia: async (kind) => {
+    /* startConsumingMedia: async (kind) => {
       try {
         isConsuming = true;
         return await this.signaling.sendCreateTransportRequest();
@@ -431,7 +431,7 @@ Once the receive transport is created, the client side application can consume m
         console.error("MediasoupSdk", "startConsumingMedia", error);
         return false;
       }
-    },
+    }, */
     createConference: async (name) => {
       try {
         const reply = await mySignaling.request("conference-create", {
@@ -719,11 +719,36 @@ Once the receive transport is created, the client side application can consume m
         return false;
       }
     },
-    publishMedia: (kind) => {
-      return this.producingMedia(kind);
+    publishMedia: async (kind, conferenceId = null, routerId = null) => {
+      if (conferenceId && routerId) {
+        conferenceData = {
+          conferenceId: conferenceId,
+          routerId: routerId,
+        };
+        const temp = subscribeEvents["onConferenceSuccess"];
+        subscribeEvents["onConferenceSuccess"] = async () => {
+          subscribeEvents["onConferenceSuccess"] = temp;
+          return await this.producingMedia(kind);
+        };
+        await this.signaling.getRouterCapabilities();
+      } else {
+        return await this.producingMedia(kind);
+      }
     },
     consumingMedia: async (kind) => {
-      return await this.signaling.startConsumingMedia(kind);
+      //return await this.signaling.startConsumingMedia(kind);
+      try {
+        isConsuming = true;
+        return await this.signaling.sendCreateTransportRequest();
+      } catch (error) {
+        console.error(
+          "MediasoupSdk",
+          "producerHandle",
+          "startConsumingMedia",
+          error
+        );
+        return false;
+      }
     },
     /*Closes the producer. No more media is transmitted. The producer's track is internally stopped by calling stop() on it, meaning that it becomes no longer usable.*/
     close: (kind) => {
