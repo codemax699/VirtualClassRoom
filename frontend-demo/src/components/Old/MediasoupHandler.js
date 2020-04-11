@@ -507,91 +507,9 @@ class MediasoupHandler {
         `%c MediasoupHandler initiateConference  :  ${conferenceName}`,
         "color:#FF00FF; font-family:'Ubuntu'; display: block;font-weight:bold; font-size:18px;background: #34eb4f;"
       );
-
-      /* this.mySignaling.socket.on("notification", (notification) => {
-        try {
-          console.log(
-            "MediasoupHandler",
-            "createRoom",
-            "notification",
-            `New notification came from server: ${JSON.stringify(notification)}`
-          );
-
-          if (subscribeEvents[notification.method])
-            subscribeEvents[notification.method](notification);
-         
-        } catch (error) {
-          console.error(
-            "MediasoupHandler",
-            "initiateConference",
-            "notification",
-            error
-          );
-        }
-      }); */
-
-      /* this.mySignaling.socket.on("request", async (request) => {
-        try {
-          console.log(
-            "MediasoupHandler",
-            "createRoom",
-            "request",
-            `New request came from server: ${JSON.stringify(request)}`
-          );
-
-          switch (request.event) {
-            case "consume": {
-              
-              const consumer = await recvTransport.consume({
-                producerId: request.data.producerId,
-                consumerId: request.data.consumerId,
-                kind: request.data.kind,
-                rtpParameters: request.data.rtpParameters,
-                type: request.data.type,
-                appData: request.data.appData,
-                producerPaused: request.data.producerPaused
-              });
-              consumer.on("transportclose", () => {
-                if (subscribeEvents["closeConsumer"])
-                  subscribeEvents["closeConsumer"](consumer.id);
-                consumers.delete(consumer.id);
-              });
-              consumers[consumer.id] = consumer;
-              if (subscribeEvents["newConsumer"])
-                subscribeEvents["newConsumer"](consumer);
-              break;
-            }
-            default: {
-              break;
-            }
-          }
-        } catch (error) {
-          console.error(
-            "MediasoupHandler",
-            "initiateConference",
-            "request",
-            error
-          );
-        }
-      }); */
+     
       if (!(await this.createConference(conferenceName)))
         throw new Error("Fail To create Conference");
-
-      /* if (!(await this.getRouterCapabilities()))
-        throw new Error("Fail To getRouterCapabilities");
-
-      if (!(await this.loadDeviceRTPCapabilities()))
-        throw new Error("Fail To loadDeviceRTPCapabilities");
-
-      if (!(await this.createTransport()))
-        throw new Error("Fail To createTransport");
-
-      if (!(await this.createSendTransport(this.transportSetting)))
-        throw new Error("Fail To createSendTransport");
-
-      if (!(await this.createRecvTransport(this.transportSetting)))
-        throw new Error("Fail To createRecvTransport"); */
-
       console.log(
         "MediasoupHandler",
         "createRoom",

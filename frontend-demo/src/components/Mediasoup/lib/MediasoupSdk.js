@@ -87,7 +87,8 @@ class MediasoupSdk {
           throw new Error("Fail To createSendTransport");
 
         if (isConsuming) {
-          this.signaling.consumingMedia();
+          this.signaling.consumingMedia("video");
+          this.signaling.consumingMedia("audio");
           if (subscribeEvents["onJoinConferenceSuccess"]) {
             subscribeEvents["onJoinConferenceSuccess"](); //in this version only user can act as broadcaster or consumer
           }
@@ -276,7 +277,7 @@ class MediasoupSdk {
       }
     },
     // Create a transport in the server for sending our media through it.
-    sendCreateTransportRequest: async (type) => {
+    sendCreateTransportRequest: async () => {
       try {
         const reply = await mySignaling.request("transport-create", {
           conferenceId: conferenceData.conferenceId,
@@ -399,11 +400,11 @@ class MediasoupSdk {
     /*
 Once the receive transport is created, the client side application can consume multiple audio and video tracks on it. However the order is the opposite (here the consumer must be created in the server first).
 */
-    consumingMedia: async () => {
+    consumingMedia: async (kind) => {
       try {
         const reply = await mySignaling.request("consume", {
           conferenceId: conferenceData.conferenceId,
-          kind: "video",
+          kind: kind,
           routerId: conferenceData.routerId,
           transportId: transportSetting.transportId,
           rtpParams: capabilities,
@@ -421,7 +422,7 @@ Once the receive transport is created, the client side application can consume m
       }
     },
 
-    startConsumingMedia: async () => {
+    startConsumingMedia: async (kind) => {
       try {
         isConsuming = true;
         return await this.signaling.sendCreateTransportRequest();
@@ -604,9 +605,9 @@ Once the receive transport is created, the client side application can consume m
           return;
         }
 
-        const m ={
-          video: kind==='video',
-          audio: kind=== 'audio',
+        const m = {
+          video: kind === "video",
+          audio: kind === "audio",
         };
 
         let stream;
@@ -620,22 +621,28 @@ Once the receive transport is created, the client side application can consume m
       }
 
       const mStream = await getUserMedia();
-      const track = mStream.getVideoTracks()[0];
+      const track =
+        kind === "video"
+          ? mStream.getVideoTracks()[0]
+          : mStream.getAudioTracks()[0];
 
       //track, encodings, codecOptions, codec, stopTracks = true, zeroRtpOnPause = false, appData = {}
 
-      producers[kind] = await sendTransport.produce({
+      let options = {
         track: track,
-        encodings: [
-          { maxBitrate: 100000 },
-          { maxBitrate: 300000 },
-          { maxBitrate: 900000 },
-        ],
         codecOptions: {
           videoGoogleStartBitrate: 1000,
         },
         stopTracks: true,
-      });
+      };
+      if (kind === "video") {
+        options.encodings = [
+          { maxBitrate: 100000 },
+          { maxBitrate: 300000 },
+          { maxBitrate: 900000 },
+        ];
+      }
+      producers[kind] = await sendTransport.produce(options);
 
       //,      codec:device.rtpCapabilities.codecs
       /* producer = await sendTransport.produce({
@@ -659,9 +666,12 @@ Once the receive transport is created, the client side application can consume m
       console.log(
         "MediasoupSdk",
         "producingMedia",
-        `Recv Transporter Crate Successfully. ${JSON.stringify(producers[kind])}`
+        `Recv Transporter Crate Successfully. ${JSON.stringify(
+          producers[kind]
+        )}`
       );
-      if (subscribeEvents["onMyStream"]) subscribeEvents["onMyStream"](mStream);
+      if (subscribeEvents["onMyStream"])
+        subscribeEvents["onMyStream"](kind, mStream);
       return true;
     } catch (error) {
       console.error("MediasoupSdk", "producingMedia", error);
@@ -692,11 +702,27 @@ Once the receive transport is created, the client side application can consume m
   };
 
   producerHandle = {
-    publishMedia:(kind)=>{      
-     return   this.producingMedia(kind);
+    createConference: async (conferenceName) => {
+      try {
+        if (!(await this.signaling.createConference(conferenceName)))
+          throw new Error("Fail To create Conference");
+        console.log(
+          "MediasoupHandler",
+          "createRoom",
+          `Initiate Conference Successfully. ${JSON.stringify(conferenceData)}`
+        );
+        return true;
+      } catch (error) {
+        console.error("MediasoupHandler", "createRoom", error);
+
+        return false;
+      }
     },
-    consumingMedia: async () => {
-      return await this.signaling.consumingMedia();
+    publishMedia: (kind) => {
+      return this.producingMedia(kind);
+    },
+    consumingMedia: async (kind) => {
+      return await this.signaling.startConsumingMedia(kind);
     },
     /*Closes the producer. No more media is transmitted. The producer's track is internally stopped by calling stop() on it, meaning that it becomes no longer usable.*/
     close: (kind) => {
@@ -773,13 +799,12 @@ Once the receive transport is created, the client side application can consume m
     resume: () => {
       consumer.resume();
     },
-    operation:(command)=>{
-      if(command ==='close'){
+    operation: (command) => {
+      if (command === "close") {
         return this.signaling.sendMediaCloseRequest();
-
       }
       return this.signaling.sendMediaOperationRequest(command);
-    }
+    },
   };
 }
 

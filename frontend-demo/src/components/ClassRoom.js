@@ -9,7 +9,7 @@ import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
 import LocalVideo from "./LocalVideo";
 import Participator from "./Participator";
-import mediasoupSdk from "./Mediasoup/lib/index";
+import PhoneHandle from "./Mediasoup/lib/index";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
 
 const useStyles = makeStyles((theme) => ({
@@ -31,14 +31,14 @@ export default function CenteredGrid() {
   const [consumers, setConsumers] = useState({});
   const [isProducer, setIsProducer] = useState(false);
   const [isConsumer, setIsConsumer] = useState(false);
-  const [kind, setKind] = useState('');
+  const [kind, setKind] = useState('video');
   const [eventMsg, setEventMsg] = useState([
     "--------------------------------",
   ]);
-  const [mediaStream, setMediaStream] = useState();
+  const [videoStream, setVideoStream] = useState();
+  const [audioStream, setAudioStream] = useState();
   const [producerState, setProducerState] = useState();
-
-  let mediasoup;
+  const [phone, setPhone] = useState();
   useEffect(() => {
     try {
     } catch (ex) {
@@ -75,10 +75,14 @@ export default function CenteredGrid() {
         console.error("SoftPhone", "events", "onConferenceSuccess", error);
       }
     },
-    onMyStream: (mStream) => {
+    onMyStream: (kind, mStream) => {
       try {
         console.log("SoftPhone", "events", "onMyStream");
-        setMediaStream(mStream);
+        if (kind === "video") {
+          setVideoStream(mStream);
+        } else {
+          setAudioStream(mStream);
+        }
       } catch (error) {
         console.error("SoftPhone", "events", "onMyStream", error);
       }
@@ -164,7 +168,6 @@ export default function CenteredGrid() {
           "consumerResumed",
           `${JSON.stringify(notification)}`
         );
-       
       } catch (error) {
         console.error("SoftPhone", "events", "consumerResumed", error);
       }
@@ -198,15 +201,17 @@ export default function CenteredGrid() {
   const clientInit = () => {
     setIsConsumer(true);
     setIsProducer(false);
-    mediasoup = mediasoupSdk.client;
-    mediasoup.initialize(events);
+    const sdk = new PhoneHandle().client;
+    setPhone(sdk);
+    sdk.initialize(events);
   };
 
   const serverInit = () => {
     setIsProducer(true);
     setIsConsumer(false);
-    mediasoup = mediasoupSdk.server;
-    mediasoup.initialize(events);
+    const sdk = new PhoneHandle().server;
+    setPhone(sdk);
+    sdk.initialize(events);
   };
 
   return (
@@ -271,7 +276,7 @@ export default function CenteredGrid() {
                     alert("Please Enter Conference Name");
                     return;
                   }
-                  mediasoup.producerHandle.createConference(conferenceId, events);
+                  phone.producerHandle.createConference(conferenceId, events);
                 }}
               >
                 Start Conference
@@ -310,8 +315,10 @@ export default function CenteredGrid() {
                 </Grid>
                 <Grid item xs={12}>
                   <LocalVideo
+                    kind={kind}
                     id={"asffafsa"}
-                    mediaStream={mediaStream}
+                    videoStream={videoStream}
+                    audioStream={audioStream}
                     onClick={() => console.log("---------------")}
                   />
                 </Grid>
@@ -333,6 +340,7 @@ export default function CenteredGrid() {
                     <Participator
                       key={item.id}
                       id={item.id}
+                      kind={item.kind}
                       mediaStream={stream}
                       fullName={item.name}
                       status={"pending.."}
@@ -357,9 +365,9 @@ export default function CenteredGrid() {
                 <Grid item xs={2}>
                   <Button
                     variant="contained"
-                    color={kind==='video' ? "secondary" : "primary"}
+                    color={kind === "video" ? "secondary" : "primary"}
                     onClick={() => {
-                      setKind('video');
+                      setKind("video");
                     }}
                   >
                     Video
@@ -368,9 +376,9 @@ export default function CenteredGrid() {
                 <Grid item xs={2}>
                   <Button
                     variant="contained"
-                    color={kind==='video'?  "primary":"secondary"}
+                    color={kind === "video" ? "primary" : "secondary"}
                     onClick={() => {
-                      setKind('audio')
+                      setKind("audio");
                     }}
                   >
                     Audio
@@ -381,7 +389,7 @@ export default function CenteredGrid() {
                     variant="contained"
                     color="primary"
                     onClick={() => {
-                      if (!mediasoup.producerHandle.publishMedia(kind)) {
+                      if (!phone.producerHandle.publishMedia(kind)) {
                         alert("Fail To Create Producer ");
                       }
                     }}
@@ -389,7 +397,6 @@ export default function CenteredGrid() {
                     Start
                   </Button>
                 </Grid>
-                
               </Grid>
             </Paper>
           </Grid>
@@ -418,7 +425,7 @@ export default function CenteredGrid() {
                       }
                       if (isConsumer) {
                         if (
-                          !mediasoup.consumerHandle.joinConference(
+                          !phone.consumerHandle.joinConference(
                             conferenceId,
                             routerId
                           )
@@ -426,7 +433,7 @@ export default function CenteredGrid() {
                           alert("Fail To join Conference ");
                         }
                       } else {
-                        if (!mediasoup.producerHandle.consumingMedia()) {
+                        if (!phone.producerHandle.consumingMedia(kind)) {
                           alert("Fail To Create Consumer ");
                         }
                       }
@@ -446,7 +453,7 @@ export default function CenteredGrid() {
                       }
                       onClick={() => {
                         setProducerState("Pause");
-                        if (!mediasoup.consumerHandle.operation('pause')) {
+                        if (!phone.consumerHandle.operation("pause")) {
                           alert("Fail To pause Consumer ");
                         }
                       }}
@@ -460,7 +467,7 @@ export default function CenteredGrid() {
                       }
                       onClick={() => {
                         setProducerState("Resume");
-                        if (!mediasoup.consumerHandle.operation('resume')) {
+                        if (!phone.consumerHandle.operation("resume")) {
                           alert("Fail To resume Consumer ");
                         }
                       }}
@@ -473,7 +480,7 @@ export default function CenteredGrid() {
                       }
                       onClick={() => {
                         setProducerState("Close");
-                        if (!mediasoup.consumerHandle.operation('close')) {
+                        if (!phone.consumerHandle.operation("close")) {
                           alert("Fail To close Consumer ");
                         }
                       }}

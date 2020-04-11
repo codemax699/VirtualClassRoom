@@ -11,22 +11,31 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Participator = ({ id, fullName, status, mediaStream, onClick }) => {
+const Participator = ({ id, fullName, status, mediaStream,kind, onClick }) => {
   const videoRef = React.createRef();
+  const audioRef = React.createRef();
   const [isLoading, setIsLoading] = useState(true);
   const classes = useStyles();
 
   useEffect(() => {
     try {
+
+      if(kind==='audio'){
+        audioRef.current.srcObject = mediaStream;
+        return
+      }
+
       setIsLoading(true);
       videoRef.current.srcObject = mediaStream;
       videoRef.current.addEventListener("loadeddata", (event) => {
         setIsLoading(false);
       });
+
+
     } catch (ex) {
       console.error(ex);
     }
-  }, [mediaStream, videoRef]);
+  }, [mediaStream, videoRef,audioRef,kind]);
   return (
     <>
       <div
@@ -42,6 +51,8 @@ const Participator = ({ id, fullName, status, mediaStream, onClick }) => {
           {isLoading && <CircularProgress color="secondary" />}
 
           <video width={265} ref={videoRef} autoPlay playsInline></video>
+          <audio ref={audioRef} autoPlay playsInline></audio>
+          
         </div>
       </div>
     </>

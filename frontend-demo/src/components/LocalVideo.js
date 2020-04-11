@@ -1,25 +1,31 @@
 import React, { useEffect, useState } from "react";
 import CircularProgress from "@material-ui/core/CircularProgress";
 
-const LocalVideo = ({ id, mediaStream, onClick }) => {
+const LocalVideo = ({ id, videoStream,audioStream,kind, onClick }) => {
   const localVideoRef = React.createRef();
-  const [isLoading, setIsLoading] = useState(true);
-
+  const localAudioRef = React.createRef();
+  const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     try {
-      setIsLoading(true);
-      if (localVideoRef.current && mediaStream) {
-        localVideoRef.current.srcObject = mediaStream;
+      if(kind==='audio'){
+        localAudioRef.current.srcObject = audioStream;
+        return
+      }
+      
+      if (localVideoRef.current && videoStream) {
+        setIsLoading(true);
+        localVideoRef.current.srcObject = videoStream;
         localVideoRef.current.addEventListener("loadeddata", (event) => {
           setIsLoading(false);
         });
+        
       } else {
         console.log("LocalVideo", "useEffect", "Video Element Not Binding");
       }
     } catch (ex) {
       console.error(ex);
     }
-  }, [mediaStream, localVideoRef]);
+  }, [videoStream,audioStream]);
   return (
     <>
       <div
@@ -29,6 +35,7 @@ const LocalVideo = ({ id, mediaStream, onClick }) => {
       >
         {isLoading && <CircularProgress color="secondary" />}
         <video width={265} ref={localVideoRef} autoPlay playsInline></video>
+        <audio width={265} ref={localAudioRef} autoPlay playsInline></audio>
       </div>
     </>
   );

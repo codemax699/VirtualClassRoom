@@ -1,6 +1,7 @@
 import MediasoupSdk from "./MediasoupSdk";
 
 class index extends MediasoupSdk {
+ 
   constructor() {
     // call the MediasoupSdk constructor
     super();
@@ -16,34 +17,25 @@ class index extends MediasoupSdk {
     }
   };
 
-  
+  producer = this.producerHandle;
 
-  producerHandle = () => {
-   return this.producerHandle();
-  };
+  consumer = this.consumerHandle;
 
-  consumerHandle = () => {
-   return this.consumerHandle();
-  };
-  
-  transportHandle = () => {
-   return this.transportHandle();
-  };
+  transport = this.transportHandle;
 }
 
 let mediasoupIndex = new index();
-const mediasoup = {
-  server: {
+class PhoneHandle {
+  server = {
     initialize: mediasoupIndex.initialize,
-    producingMedia: mediasoupIndex.producingMedia,
-    transportHandle: mediasoupIndex.transportHandle,
-    consumerHandle: mediasoupIndex.consumerHandle,
-    producerHandle: mediasoupIndex.producerHandle,
-  },
-  client: {
+    transportHandle: mediasoupIndex.transport,
+    consumerHandle: mediasoupIndex.consumer,
+    producerHandle: mediasoupIndex.producer,
+  };
+  client = {
     initialize: mediasoupIndex.initialize,
-    transportHandle: mediasoupIndex.transportHandle,
-    consumerHandle: mediasoupIndex.consumerHandle,
-  },
-};
-export default mediasoup;
+    transportHandle: mediasoupIndex.transport,
+    consumerHandle: mediasoupIndex.consumer,
+  };
+}
+export default PhoneHandle;
