@@ -1,5 +1,5 @@
 export const validateEvents = true;
 
 export const socketClient = {
-  path: "ws://8c8703bf.ngrok.io",
+  path: "ws://034de772.ngrok.io",
 };

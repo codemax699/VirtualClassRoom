@@ -23,6 +23,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+let  consumersTemp = {};
 export default function CenteredGrid() {
   const classes = useStyles();
 
@@ -97,9 +98,10 @@ export default function CenteredGrid() {
           "newConsumer",
           `${JSON.stringify(consumer)}`
         );
-        const temp = { ...consumers };
+        const temp = { ...consumersTemp };
         temp[consumer.id] = consumer;
-        setConsumers({ ...temp });
+        consumersTemp = { ...temp };
+        setConsumers(consumersTemp);
       } catch (error) {
         console.error("SoftPhone", "events", "newConsumer", error);
       }
@@ -107,9 +109,10 @@ export default function CenteredGrid() {
     closeConsumer: (id) => {
       try {
         console.log("SoftPhone", "events", "closeConsumer", `${id}`);
-        const temp = { ...consumers };
+        const temp = { ...consumersTemp };
         delete temp[id];
-        setConsumers({ ...temp });
+        consumersTemp = { ...temp };
+        setConsumers(consumersTemp);
       } catch (error) {
         console.error("SoftPhone", "events", "newConsumer", error);
       }
