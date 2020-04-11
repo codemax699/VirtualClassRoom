@@ -14,59 +14,20 @@ class MediasoupClient extends MediasoupSdk {
       console.error("MediasoupServer", "createConference", error);
       return false;
     }
-  };
+  };  
 
-  joinConference = (conferenceId, routerId) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        console.log(
-          "MediasoupClient",
-          "joinConference",
-          `conferenceId :${conferenceId}, routerId : ${routerId}`
-        );
-        await super.signaling.joinConference(
-          conferenceId,
-          routerId,
-          (track) => {
-            resolve(track);
-          }
-        );
-      } catch (error) {
-        console.error(
-          "MediasoupClient",
-          "joinConference",
-          `conferenceId :${conferenceId}, routerId : ${routerId}`,
-          error
-        );
-        reject(error);
-      }
-    });
+  consumerHandle = () => {
+    return super.consumerHandle();
   };
-
-  consumingMedia = async (conferenceId, routerId) => {
-    return await super.signaling.consumingMedia(conferenceId, routerId);
-  };
-
-  broadcast = () => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        console.log("MediasoupClient", "broadcast");
-        await super.signaling.producerBroadcast((status) => {
-          resolve(status);
-        });
-      } catch (error) {
-        console.error("MediasoupClient", "broadcast", error);
-        reject(error);
-      }
-    });
+  transportHandle = () => {
+    return super.transportHandle();
   };
 }
 
 let mediasoupClient = new MediasoupClient();
 const client = {
-  broadcast: mediasoupClient.broadcast,
-  joinConference: mediasoupClient.joinConference,
-  consumingMedia: mediasoupClient.consumingMedia,
+  transportHandle: mediasoupClient.transportHandle,
+  consumerHandle: mediasoupClient.consumerHandle,
   initialize: mediasoupClient.initialize,
 };
 export default client;

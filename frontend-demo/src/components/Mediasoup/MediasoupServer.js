@@ -1,7 +1,7 @@
 import MediasoupSdk from "./lib/MediasoupSdk";
+import mediasoup from "./lib";
 
 class MediasoupServer extends MediasoupSdk {
-  
   constructor() {
     // call the MediasoupSdk constructor
     super();
@@ -10,48 +10,31 @@ class MediasoupServer extends MediasoupSdk {
   initialize = (callBackEvents) => {
     try {
       console.log("MediasoupServer", "createConference");
-    return  this.initializeSDK(callBackEvents);
-
+      return this.initializeSDK(callBackEvents);
     } catch (error) {
-      console.error("MediasoupServer", "createConference",  error);
+      console.error("MediasoupServer", "createConference", error);
       return false;
     }
-  };  
- 
-  createConference = (name) => {
-    return new Promise(async (resolve, reject)=> {
-      try {
-        console.log("MediasoupServer", "createConference", `${name}`);
-        await this.signaling.createConference(name,(track)=>{
-            resolve(track);
-        });
-      } catch (error) {
-        console.error("MediasoupServer", "createConference", `${name}`, error);
-        reject(error);
-      }
-    });
-  };  
-  
-  producingMedia=(video,audio)=>{
-    return this.producingMedia(video,audio);
-  }  
+  };
 
-  broadcast = () => {
-    return new Promise(async (resolve, reject)=> {
-      try {
-        console.log("MediasoupServer", "broadcast");
-        await super.signaling.producerBroadcast((status)=>{
-            resolve(status);
-        });
-      } catch (error) {
-        console.error("MediasoupServer", "broadcast",  error);
-        reject(error);
-      }
-    });
+  producerHandle = () => {
+   return super.producerHandle();
+  };
+
+  consumerHandle = () => {
+    return super.consumerHandle();
+  };
+  transportHandle = () => {
+   return  super.transportHandle();
   };
 }
 
 let mediasoupServer = new MediasoupServer();
-const server = { broadcast :mediasoupServer.broadcast ,createConference :mediasoupServer.createConference ,initialize:mediasoupServer.initialize }
+const server = {
+  transportHandle: mediasoupServer.transportHandle,
+  consumerHandle: mediasoupServer.consumerHandle,
+  producerHandle: mediasoupServer.producerHandle,
+  initialize: mediasoupServer.initialize,
+};
 
 export default server;

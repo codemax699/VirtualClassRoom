@@ -31,12 +31,13 @@ export default function CenteredGrid() {
   const [consumers, setConsumers] = useState({});
   const [isProducer, setIsProducer] = useState(false);
   const [isConsumer, setIsConsumer] = useState(false);
-  const [video, setVideo] = useState(false);
-  const [audio, setAudio] = useState(false);
+  const [kind, setKind] = useState('');
   const [eventMsg, setEventMsg] = useState([
     "--------------------------------",
   ]);
   const [mediaStream, setMediaStream] = useState();
+  const [producerState, setProducerState] = useState();
+
   let mediasoup;
   useEffect(() => {
     try {
@@ -163,6 +164,7 @@ export default function CenteredGrid() {
           "consumerResumed",
           `${JSON.stringify(notification)}`
         );
+       
       } catch (error) {
         console.error("SoftPhone", "events", "consumerResumed", error);
       }
@@ -269,7 +271,7 @@ export default function CenteredGrid() {
                     alert("Please Enter Conference Name");
                     return;
                   }
-                  mediasoup.createConference(conferenceId, events);
+                  mediasoup.producerHandle.createConference(conferenceId, events);
                 }}
               >
                 Start Conference
@@ -352,34 +354,34 @@ export default function CenteredGrid() {
                   Host View
                 </Grid>
 
-                <Grid item xs={3}>
+                <Grid item xs={2}>
                   <Button
                     variant="contained"
-                    color={video ? "secondary" : "primary"}
+                    color={kind==='video' ? "secondary" : "primary"}
                     onClick={() => {
-                      setVideo(!video);
+                      setKind('video');
                     }}
                   >
                     Video
                   </Button>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid item xs={2}>
                   <Button
                     variant="contained"
-                    color={audio ? "secondary" : "primary"}
+                    color={kind==='video'?  "primary":"secondary"}
                     onClick={() => {
-                      setAudio(!audio);
+                      setKind('audio')
                     }}
                   >
                     Audio
                   </Button>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={2}>
                   <Button
                     variant="contained"
                     color="primary"
                     onClick={() => {
-                      if (!mediasoup.producingMedia(video, audio)) {
+                      if (!mediasoup.producerHandle.publishMedia(kind)) {
                         alert("Fail To Create Producer ");
                       }
                     }}
@@ -387,6 +389,7 @@ export default function CenteredGrid() {
                     Start
                   </Button>
                 </Grid>
+                
               </Grid>
             </Paper>
           </Grid>
@@ -413,13 +416,71 @@ export default function CenteredGrid() {
                         alert("No Router ID ");
                         return;
                       }
-                      if (!mediasoup.consumingMedia(conferenceId, routerId)) {
-                        alert("Fail To Create Consumer ");
+                      if (isConsumer) {
+                        if (
+                          !mediasoup.consumerHandle.joinConference(
+                            conferenceId,
+                            routerId
+                          )
+                        ) {
+                          alert("Fail To join Conference ");
+                        }
+                      } else {
+                        if (!mediasoup.producerHandle.consumingMedia()) {
+                          alert("Fail To Create Consumer ");
+                        }
                       }
                     }}
                   >
                     Start
                   </Button>
+                </Grid>
+                <Grid item xs={12}>
+                  <ButtonGroup
+                    color="primary"
+                    aria-label="outlined primary button group"
+                  >
+                    <Button
+                      color={
+                        producerState === "Pause" ? "secondary" : "primary"
+                      }
+                      onClick={() => {
+                        setProducerState("Pause");
+                        if (!mediasoup.consumerHandle.operation('pause')) {
+                          alert("Fail To pause Consumer ");
+                        }
+                      }}
+                    >
+                      Producer Pause
+                    </Button>
+
+                    <Button
+                      color={
+                        producerState === "Resume" ? "secondary" : "primary"
+                      }
+                      onClick={() => {
+                        setProducerState("Resume");
+                        if (!mediasoup.consumerHandle.operation('resume')) {
+                          alert("Fail To resume Consumer ");
+                        }
+                      }}
+                    >
+                      Producer Resume
+                    </Button>
+                    <Button
+                      color={
+                        producerState === "Close" ? "secondary" : "primary"
+                      }
+                      onClick={() => {
+                        setProducerState("Close");
+                        if (!mediasoup.consumerHandle.operation('close')) {
+                          alert("Fail To close Consumer ");
+                        }
+                      }}
+                    >
+                      Producer Close
+                    </Button>
+                  </ButtonGroup>
                 </Grid>
               </Grid>
             </Paper>

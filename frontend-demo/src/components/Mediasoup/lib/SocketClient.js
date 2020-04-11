@@ -69,27 +69,43 @@ export class SocketClient {
             break;
           }
           case "media-broadcast": {
+            if (messageListener && messageListener.mediaBroadcast)
+              messageListener.mediaBroadcast(msg);
             break;
           }
           case "activeSpeaker": {
+            if (messageListener && messageListener.activeSpeaker)
+              messageListener.activeSpeaker(msg);
             break;
           }
           case "consumerClosed": {
+            if (messageListener && messageListener.consumerClosed)
+              messageListener.consumerClosed(msg);
             break;
           }
           case "consumerPaused": {
+            if (messageListener && messageListener.consumerPaused)
+              messageListener.consumerPaused(msg);
             break;
           }
           case "consumerResumed": {
+            if (messageListener && messageListener.consumerResumed)
+              messageListener.consumerResumed(msg);
             break;
           }
           case "consumerScore": {
+            if (messageListener && messageListener.consumerScore)
+              messageListener.consumerScore(msg);
             break;
           }
           case "producerScore": {
+            if (messageListener && messageListener.producerScore)
+              messageListener.producerScore(msg);
             break;
           }
           case "layerChanged": {
+            if (messageListener && messageListener.layerChanged)
+              messageListener.layerChanged(msg);
             break;
           }
           default: {

@@ -1,7 +1,7 @@
 import { types as mediasoupTypes } from "mediasoup-client";
 import { SocketClient } from "./SocketClient";
 
-let producer = {};
+let producers = {};
 let consumer = {};
 let capabilities = {};
 let device = {};
@@ -213,12 +213,68 @@ class MediasoupSdk {
           subscribeEvents["onBroadcastSuccess"](false);
       }
     },
+    consumerClosed: () => {
+      this.consumerHandle.close();
+    },
+    consumerPaused: () => {
+      this.consumerHandle.pause();
+    },
+    consumerResumed: () => {
+      this.consumerHandle.resume();
+    },
   };
 
   getSignaling = () => {
     return this.signaling;
   };
   signaling = {
+    sendMediaOperationRequest: async (operation) => {
+      try {
+        const reply = await mySignaling.request("media-operation", {
+          conferenceId: conferenceData.conferenceId,
+          type: isConsuming ? "consumer" : "producer",
+          routerId: conferenceData.routerId,
+          mediaId: "5f03ffde-a551-4201-851a-37b7452dbb69",
+          mediaType: isConsuming ? "consumer" : "producer",
+          mediaOperation: operation,
+        });
+
+        console.log(
+          "MediasoupSdk",
+          "sendMediaOperationRequest",
+          `send Media Operation  Request ${
+            reply ? "Send Successfully" : "Fail to Send"
+          }`
+        );
+        return reply;
+      } catch (error) {
+        console.error("MediasoupSdk", "sendMediaOperationRequest", error);
+        return false;
+      }
+    },
+    sendMediaCloseRequest: async () => {
+      try {
+        const reply = await mySignaling.request("media-close", {
+          conferenceId: conferenceData.conferenceId,
+          type: isConsuming ? "consumer" : "producer",
+          routerId: conferenceData.routerId,
+          mediaId: "5f03ffde-a551-4201-851a-37b7452dbb69",
+          otype: isConsuming ? "consumer" : "producer",
+        });
+
+        console.log(
+          "MediasoupSdk",
+          "sendMediaCloseRequest",
+          `send Media Close   Request ${
+            reply ? "Send Successfully" : "Fail to Send"
+          }`
+        );
+        return reply;
+      } catch (error) {
+        console.error("MediasoupSdk", "sendMediaCloseRequest", error);
+        return false;
+      }
+    },
     // Create a transport in the server for sending our media through it.
     sendCreateTransportRequest: async (type) => {
       try {
@@ -240,25 +296,6 @@ class MediasoupSdk {
         return reply;
       } catch (error) {
         console.error("MediasoupSdk", "createTransport", error);
-        return false;
-      }
-    },
-    joinConference: async (conferenceId, routerId) => {
-      try {
-        isConsuming = true;
-        conferenceData.conferenceId = conferenceId;
-        conferenceData.routerId = routerId;
-        const reply = await this.signaling.getRouterCapabilities();
-        console.log(
-          "MediasoupSdk",
-          "joinConference",
-          `joinConference Request ${
-            reply ? "Send Successfully" : "Fail to Send"
-          }`
-        );
-        return reply;
-      } catch (error) {
-        console.error("MediasoupSdk", "joinConference", error);
         return false;
       }
     },
@@ -559,20 +596,22 @@ Once the receive transport is created, the client side application can consume m
   /*
   Once the send transport is created, the client side application can produce multiple audio and video tracks on it.
   */
-  producingMedia = async (video, audio) => {
+  producingMedia = async (kind) => {
     try {
       async function getUserMedia() {
-        if (!device.canProduce("video")) {
-          console.error("cannot produce video");
+        if (!device.canProduce(kind)) {
+          console.error(`cannot produce ${kind}`);
           return;
         }
 
+        const m ={
+          video: kind==='video',
+          audio: kind=== 'audio',
+        };
+
         let stream;
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: video,
-            audio: audio,
-          });
+          stream = await navigator.mediaDevices.getUserMedia(m);
         } catch (err) {
           console.error("getUserMedia() failed:", err.message);
           throw err;
@@ -585,7 +624,7 @@ Once the receive transport is created, the client side application can consume m
 
       //track, encodings, codecOptions, codec, stopTracks = true, zeroRtpOnPause = false, appData = {}
 
-      producer = await sendTransport.produce({
+      producers[kind] = await sendTransport.produce({
         track: track,
         encodings: [
           { maxBitrate: 100000 },
@@ -613,20 +652,133 @@ Once the receive transport is created, the client side application can consume m
         stopTracks: false,
       }); */
 
-      producer.on("transportclose", () =>
+      producers[kind].on("transportclose", () =>
         this.communicatingActionsEvents("transportclose")
       );
 
       console.log(
         "MediasoupSdk",
         "producingMedia",
-        `Recv Transporter Crate Successfully. ${JSON.stringify(producer)}`
+        `Recv Transporter Crate Successfully. ${JSON.stringify(producers[kind])}`
       );
       if (subscribeEvents["onMyStream"]) subscribeEvents["onMyStream"](mStream);
       return true;
     } catch (error) {
       console.error("MediasoupSdk", "producingMedia", error);
       return false;
+    }
+  };
+
+  transportHandle = {
+    /*Provides the underlying peerconnection with a new list of TURN servers.*/
+    updateIceServers: () => {
+      //  await transport.updateIceServers({ iceServers: [ ... ] });
+    },
+
+    /*Instructs the underlying peerconnection to restart ICE by providing it with new remote ICE parameters.*/
+    restartIce: () => {
+      // transport.restartIce({ iceParameters })
+    },
+
+    /*Gets the local transport statistics by calling getStats() in the underlying RTCPeerConnection instance.*/
+    getStats: () => {
+      //  transport.getStats()
+    },
+
+    /*Closes the transport, including all its producers and consumers.*/
+    close: () => {
+      //  transport.close();
+    },
+  };
+
+  producerHandle = {
+    publishMedia:(kind)=>{      
+     return   this.producingMedia(kind);
+    },
+    consumingMedia: async () => {
+      return await this.signaling.consumingMedia();
+    },
+    /*Closes the producer. No more media is transmitted. The producer's track is internally stopped by calling stop() on it, meaning that it becomes no longer usable.*/
+    close: (kind) => {
+      producers[kind].close();
+    },
+
+    /*Gets the local RTP sender statistics by calling getStats() in the underlying RTCRtpSender instance.*/
+    getStats: () => {
+      //  producer.getStats();
+    },
+
+    /*Pauses the producer (no RTP is sent to the server).*/
+    pause: (kind) => {
+      producers[kind].pause();
+    },
+
+    /*Resumes the producer (RTP is sent again to the server).*/
+    resume: (kind) => {
+      producers[kind].resume();
+    },
+
+    /*Replaces the audio or video track being transmitted. No negotiation with the server is needed.*/
+    replaceTrack: (track) => {
+      /* const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const newVideoTrack = stream.getVideoTracks()[0];
+        await producer.replaceTrack({ track: newVideoTrack });     */
+      //  producer.replaceTrack({ track })
+    },
+
+    /*In case of simulcast, this method limits the highest RTP stream being transmitted to the server.*/
+    setMaxSpatialLayer: (spatialLayer) => {
+      //  producer.setMaxSpatialLayer(spatialLayer);
+    },
+
+    /*Add parameters to all encodings in the RTCRtpSender of the producer. Use with caution.*/
+    setRtpEncodingParameters: (params) => {
+      //  producer.setRtpEncodingParameters(params);
+    },
+  };
+
+  consumerHandle = {
+    joinConference: async (conferenceId, routerId) => {
+      try {
+        isConsuming = true;
+        conferenceData.conferenceId = conferenceId;
+        conferenceData.routerId = routerId;
+        const reply = await this.signaling.getRouterCapabilities();
+        console.log(
+          "MediasoupSdk",
+          "joinConference",
+          `joinConference Request ${
+            reply ? "Send Successfully" : "Fail to Send"
+          }`
+        );
+        return reply;
+      } catch (error) {
+        console.error("MediasoupSdk", "joinConference", error);
+        return false;
+      }
+    },
+    /*Closes the consumer.*/
+    close: () => {
+      consumer.close();
+    },
+    /* Gets the local RTP receiver statistics by calling getStats() in the underlying RTCRtpReceiver instance*/
+    getStats: () => {
+      consumer.getStats();
+    },
+    /*Pauses the consumer. Internally the library sets track.enabled = false in the remote track.*/
+    pause: () => {
+      consumer.pause();
+    },
+    /*Resumes the consumer Internally the library sets track.enabled = true in the remote track.*/
+    resume: () => {
+      consumer.resume();
+    },
+    operation:(command)=>{
+      if(command ==='close'){
+        return this.signaling.sendMediaCloseRequest();
+
+      }
+      return this.signaling.sendMediaOperationRequest(command);
     }
   };
 }

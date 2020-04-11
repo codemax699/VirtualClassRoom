@@ -16,81 +16,34 @@ class index extends MediasoupSdk {
     }
   };
 
-  createConference = (name) => {
-    try {
-      console.log("MediasoupServer", "createConference", `${name}`);
-      return this.signaling.createConference(name);
-    } catch (error) {
-      console.error("MediasoupServer", "createConference", `${name}`, error);
-      return false;
-    }
+  
+
+  producerHandle = () => {
+   return this.producerHandle();
   };
 
-  broadcast = () => {
-    try {
-      console.log("MediasoupServer", "broadcast");
-      return this.signaling.producerBroadcast();
-    } catch (error) {
-      console.error("MediasoupServer", "broadcast", error);
-      return false;
-    }
+  consumerHandle = () => {
+   return this.consumerHandle();
   };
-
-  consumingMedia = () => {
-    try {
-      console.log("MediasoupServer", "consumingMedia");
-      return this.signaling.startConsumingMedia();
-    } catch (error) {
-      console.error("MediasoupServer", "consumingMedia", error);
-      return false;
-    }
-  };
-
-  joinConference = (conferenceId, routerId) => {
-    try {
-      console.log(
-        "MediasoupClient",
-        "joinConference",
-        `conferenceId :${conferenceId}, routerId : ${routerId}`
-      );
-      return this.signaling.joinConference(conferenceId, routerId);
-    } catch (error) {
-      console.error(
-        "MediasoupClient",
-        "joinConference",
-        `conferenceId :${conferenceId}, routerId : ${routerId}`,
-        error
-      );
-      return false;
-    }
-    /* return new Promise(async (resolve, reject) => {
-      try {
-        console.log("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`);
-        await this.signaling.joinConference(conferenceId,routerId,
-          (track) => {
-            resolve(track);
-          }
-        );
-      } catch (error) {
-        console.error("MediasoupClient", "joinConference", `conferenceId :${conferenceId}, routerId : ${routerId}`, error);
-        reject(error);
-      }
-    }); */
+  
+  transportHandle = () => {
+   return this.transportHandle();
   };
 }
 
 let mediasoupIndex = new index();
 const mediasoup = {
   server: {
-    broadcast: mediasoupIndex.broadcast,
-    createConference: mediasoupIndex.createConference,
     initialize: mediasoupIndex.initialize,
     producingMedia: mediasoupIndex.producingMedia,
+    transportHandle: mediasoupIndex.transportHandle,
+    consumerHandle: mediasoupIndex.consumerHandle,
+    producerHandle: mediasoupIndex.producerHandle,
   },
   client: {
-    joinConference: mediasoupIndex.joinConference,
-    consumingMedia: mediasoupIndex.consumingMedia,
     initialize: mediasoupIndex.initialize,
+    transportHandle: mediasoupIndex.transportHandle,
+    consumerHandle: mediasoupIndex.consumerHandle,
   },
 };
 export default mediasoup;
