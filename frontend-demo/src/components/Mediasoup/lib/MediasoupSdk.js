@@ -408,6 +408,7 @@ Once the receive transport is created, the client side application can consume m
           routerId: conferenceData.routerId,
           transportId: transportSetting.transportId,
           rtpParams: capabilities,
+          consumeType:kind
         });
 
         console.log(
