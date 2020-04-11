@@ -23,7 +23,8 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-let  consumersTemp = {};
+let consumersTemp = {};
+
 export default function CenteredGrid() {
   const classes = useStyles();
 
@@ -32,7 +33,7 @@ export default function CenteredGrid() {
   const [consumers, setConsumers] = useState({});
   const [isProducer, setIsProducer] = useState(false);
   const [isConsumer, setIsConsumer] = useState(false);
-  const [kind, setKind] = useState('video');
+  const [kind, setKind] = useState("video");
   const [eventMsg, setEventMsg] = useState([
     "--------------------------------",
   ]);
@@ -48,6 +49,7 @@ export default function CenteredGrid() {
       console.error(ex);
     }
   }, []);
+
 
   const events = {
     onBroadcastSuccess: (val) => {
@@ -394,8 +396,14 @@ export default function CenteredGrid() {
                   <Button
                     variant="contained"
                     color="primary"
-                    onClick={() => {                      
-                      if (!phone.producerHandle.publishMedia(kind,isConferenceClick?null:conferenceId,isConferenceClick?null:routerId)) {
+                    onClick={() => {
+                      if (
+                        !phone.producerHandle.publishMedia(
+                          kind,
+                          isConferenceClick ? null : conferenceId,
+                          isConferenceClick ? null : routerId
+                        )
+                      ) {
                         alert("Fail To Create Producer ");
                       }
                     }}
