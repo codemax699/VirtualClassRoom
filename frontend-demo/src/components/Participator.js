@@ -20,6 +20,7 @@ const Participator = ({ id, fullName, status, mediaStream,kind, onClick }) => {
   useEffect(() => {
     try {
 
+      console.log("Participator.............................")
       if(kind==='audio'){
         audioRef.current.srcObject = mediaStream;
         return
@@ -35,7 +36,7 @@ const Participator = ({ id, fullName, status, mediaStream,kind, onClick }) => {
     } catch (ex) {
       console.error(ex);
     }
-  }, [mediaStream, videoRef,audioRef,kind]);
+  }, []);
   return (
     <>
       <div

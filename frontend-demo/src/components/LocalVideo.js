@@ -7,6 +7,7 @@ const LocalVideo = ({ id, videoStream,audioStream,kind, onClick }) => {
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     try {
+      console.log("LocalVideo.............................")
       if(kind==='audio'){
         localAudioRef.current.srcObject = audioStream;
         return
@@ -25,7 +26,7 @@ const LocalVideo = ({ id, videoStream,audioStream,kind, onClick }) => {
     } catch (ex) {
       console.error(ex);
     }
-  }, [videoStream,audioStream]);
+  }, []);
   return (
     <>
       <div
@@ -35,7 +36,7 @@ const LocalVideo = ({ id, videoStream,audioStream,kind, onClick }) => {
       >
         {isLoading && <CircularProgress color="secondary" />}
         <video width={265} ref={localVideoRef} autoPlay playsInline></video>
-        <audio width={265} ref={localAudioRef} autoPlay playsInline></audio>
+        <audio width={265} ref={localAudioRef} autoPlay playsInline muted></audio>
       </div>
     </>
   );
