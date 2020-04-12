@@ -9,7 +9,8 @@ let mySignaling = {};
 let sendTransport = {};
 let recvTransport = {};
 let conferenceData = {};
-let transportSetting = {};
+let sendTransportSetting = {}; 
+let recvTransportSetting = {};
 let subscribeEvents = {};
 let isConsuming = false;
 let sendTransportProduceEvent = {};
@@ -74,26 +75,28 @@ class MediasoupSdk {
     },
     onTransportCreate: async (msg) => {
       try {
-        transportSetting = msg;
+       // transportSetting = msg;
         if (
           !(await this.creatingTransports({
-            id: transportSetting.transportId,
-            iceParameters: transportSetting.iceParameters,
-            iceCandidates: transportSetting.iceCandidates,
-            dtlsParameters: transportSetting.dtlsParameters,
-            sctpParameters: transportSetting.sctpParameters,
+            id: msg.transportId,
+            iceParameters: msg.iceParameters,
+            iceCandidates: msg.iceCandidates,
+            dtlsParameters: msg.dtlsParameters,
+            sctpParameters: msg.sctpParameters,
           }))
         )
           throw new Error("Fail To createSendTransport");
 
         if (isConsuming) {
-          this.signaling.consumingMedia("video");
+           recvTransportSetting = msg;
+          this.signaling.consumingMedia("video"); 
           this.signaling.consumingMedia("audio");
           if (subscribeEvents["onJoinConferenceSuccess"]) {
             subscribeEvents["onJoinConferenceSuccess"](); //in this version only user can act as broadcaster or consumer
           }
           return;
         } else {
+          sendTransportSetting = msg;
           msg.routerId = conferenceData.routerId;
           if (subscribeEvents["onConferenceSuccess"])
             subscribeEvents["onConferenceSuccess"](msg);
@@ -338,7 +341,7 @@ class MediasoupSdk {
           conferenceId: conferenceData.conferenceId,
           kind,
           routerId: conferenceData.routerId,
-          transportId: transportSetting.transportId,
+          transportId: sendTransportSetting.transportId, 
           rtpParams: rtpParameters,
           serverRtpParams: capabilities,
           appData,
@@ -367,7 +370,7 @@ class MediasoupSdk {
           conferenceId: conferenceData.conferenceId,
           type: isConsuming ? "consumer" : "producer",
           routerId: conferenceData.routerId,
-          transportId: transportSetting.transportId,
+          transportId: recvTransportSetting.transportId,
           capabilities: capabilities,
           dtlsParameters: dtlsParameters,
         });
@@ -386,7 +389,7 @@ class MediasoupSdk {
           conferenceId: conferenceData.conferenceId,
           type: isConsuming ? "consumer" : "producer",
           routerId: conferenceData.routerId,
-          transportId: transportSetting.transportId,
+          transportId: sendTransportSetting.transportId, 
           capabilities: capabilities,
           dtlsParameters: dtlsParameters,
         });
@@ -406,7 +409,7 @@ Once the receive transport is created, the client side application can consume m
           conferenceId: conferenceData.conferenceId,
           kind: kind,
           routerId: conferenceData.routerId,
-          transportId: transportSetting.transportId,
+          transportId: recvTransportSetting.transportId, 
           rtpParams: capabilities,
           consumeType: kind,
         });
@@ -456,7 +459,7 @@ Once the receive transport is created, the client side application can consume m
         const reply = await mySignaling.request("producer-broadcast", {
           conferenceId: conferenceData.conferenceId,
           routerId: conferenceData.routerId,
-          transportId: transportSetting.transportId,
+          transportId: sendTransportSetting.transportId, 
           producerId: conferenceData.producerId,
         });
 
@@ -560,7 +563,7 @@ Once the receive transport is created, the client side application can consume m
           );
         });
 
-        console.log("MediasoupSdk", "creatingTransports", "RecvTransport");
+        console.log("MediasoupSdk", "creatingTransports", "RecvTransport" ,`RecvTransport : ${JSON.stringify(recvTransport)}`);
       } else {
         sendTransport = device.createSendTransport({
           id: id,
@@ -585,7 +588,7 @@ Once the receive transport is created, the client side application can consume m
           );
         });
 
-        console.log("MediasoupSdk", "creatingTransports", "sendTransport");
+        console.log("MediasoupSdk", "creatingTransports", "sendTransport" , `sendTransport : ${JSON.stringify(sendTransport)}`);
       }
       console.log("MediasoupSdk", "creatingTransports");
       return true;
@@ -720,6 +723,7 @@ Once the receive transport is created, the client side application can consume m
       }
     },
     publishMedia: async (kind, conferenceId = null, routerId = null) => {
+      isConsuming = false;
       if (conferenceId && routerId) {
         conferenceData = {
           conferenceId: conferenceId,
