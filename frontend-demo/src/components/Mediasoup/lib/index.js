@@ -9,10 +9,10 @@ class index extends MediasoupSdk {
 
   initialize = (callBackEvents) => {
     try {
-      console.log("MediasoupServer", "createConference");
+      console.log("MediasoupServer", "initialize Signaling SDK");
       return this.initializeSDK(callBackEvents);
     } catch (error) {
-      console.error("MediasoupServer", "createConference", error);
+      console.error("MediasoupServer", "initialize Signaling SDK", error);
       return false;
     }
   };

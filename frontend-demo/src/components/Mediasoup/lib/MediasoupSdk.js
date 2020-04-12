@@ -161,7 +161,7 @@ class MediasoupSdk {
             consumer.on("trace", (trace) => console.log("MediasoupSdk", trace));
 
             if (subscribeEvents["newConsumer"])
-              subscribeEvents["newConsumer"](consumer);
+              subscribeEvents["newConsumer"](item.producer.transportId,consumer);
           });
         } else {
           console.error("MediasoupSdk", "onConsumerCreate-invalid data");

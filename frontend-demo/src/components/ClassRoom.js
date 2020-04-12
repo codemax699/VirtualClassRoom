@@ -26,11 +26,21 @@ const useStyles = makeStyles((theme) => ({
 const consumerReducer = (state, action) => {
   switch (action.type) {
     case "NEW_CONSUMER":
-      let id = action.consumer.id;
-      let consumer = action.consumer;
-      let item = {};
-      item[id] = consumer;
-      return { ...state, ...item };
+      let id = action.id;
+      let oldStream = state[id];
+      let stream;
+      let consumer = { ...action.consumer };
+      if (oldStream) {
+        stream = oldStream.stream;
+        consumer.kind = "both";
+      } else {
+        stream = new MediaStream();
+      }
+      stream.addTrack(action.consumer.track);
+      consumer.stream = stream;
+      let newItem = {};
+      newItem[id] = consumer;
+      return { ...state, ...newItem };
     default:
       return state;
   }
@@ -66,7 +76,7 @@ export default function CenteredGrid() {
     } catch (ex) {
       console.error(ex);
     }
-  }, [consumers]);
+  }, []);
 
   const events = {
     onBroadcastSuccess: (val) => {
@@ -109,7 +119,7 @@ export default function CenteredGrid() {
         console.error("SoftPhone", "events", "onMyStream", error);
       }
     },
-    newConsumer: (consumer, ref) => {
+    newConsumer: (id, consumer) => {
       try {
         console.log(
           "SoftPhone",
@@ -126,7 +136,7 @@ export default function CenteredGrid() {
         //   type: todo.complete ? 'UNDO_TODO' : 'DO_TODO',
         //   id: todo.id,
         // });
-        dispatchConsumer({ type: "NEW_CONSUMER", consumer: consumer });
+        dispatchConsumer({ type: "NEW_CONSUMER", id: id, consumer: consumer });
       } catch (error) {
         console.error("SoftPhone", "events", "newConsumer", error);
       }
@@ -361,8 +371,8 @@ export default function CenteredGrid() {
           <Grid container spacing={3}>
             {Object.values(consumers).map((item) => {
               console.log(item.id);
-              const stream = new MediaStream();
-              stream.addTrack(item.track);
+              /*  const stream = new MediaStream();
+              stream.addTrack(item.track); */
               return (
                 <Grid key={item.id} item xs={3}>
                   <Paper className={classes.paper}>
@@ -370,7 +380,7 @@ export default function CenteredGrid() {
                       key={item.id}
                       id={item.id}
                       kind={item.kind}
-                      mediaStream={stream}
+                      mediaStream={item.stream}
                       fullName={item.name}
                       status={"pending.."}
                       active={item.active}
@@ -433,6 +443,55 @@ export default function CenteredGrid() {
                   </Button>
                 </Grid>
               </Grid>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <ButtonGroup
+                    color="primary"
+                    aria-label="outlined primary button group"
+                  >
+                    <Button
+                      color={
+                        producerState === "Pause" ? "secondary" : "primary"
+                      }
+                      onClick={() => {
+                        setProducerState("Pause");
+                        if (!phone.producerHandle.pause(kind)) {
+                          alert("Fail To pause Consumer ");
+                        }
+                      }}
+                    >
+                      Pause
+                    </Button>
+
+                    <Button
+                      color={
+                        producerState === "Resume" ? "secondary" : "primary"
+                      }
+                      onClick={() => {
+                        setProducerState("Resume");
+                        if (!phone.producerHandle.resume(kind)) {
+                          alert("Fail To resume Consumer ");
+                        }
+                      }}
+                    >
+                      Resume
+                    </Button>
+                    <Button
+                      color={
+                        producerState === "Close" ? "secondary" : "primary"
+                      }
+                      onClick={() => {
+                        setProducerState("Close");
+                        if (!phone.producerHandle.close(kind)) {
+                          alert("Fail To close Consumer ");
+                        }
+                      }}
+                    >
+                      Close
+                    </Button>
+                  </ButtonGroup>
+                </Grid>
+              </Grid>
             </Paper>
           </Grid>
         )}
@@ -493,7 +552,7 @@ export default function CenteredGrid() {
                         }
                       }}
                     >
-                      Producer Pause
+                      Pause
                     </Button>
 
                     <Button
@@ -507,7 +566,7 @@ export default function CenteredGrid() {
                         }
                       }}
                     >
-                      Producer Resume
+                      Resume
                     </Button>
                     <Button
                       color={
@@ -520,7 +579,7 @@ export default function CenteredGrid() {
                         }
                       }}
                     >
-                      Producer Close
+                      Close
                     </Button>
                   </ButtonGroup>
                 </Grid>

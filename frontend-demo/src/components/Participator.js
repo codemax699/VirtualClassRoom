@@ -36,7 +36,8 @@ const Participator = ({ id, fullName, status, mediaStream,kind, onClick }) => {
     } catch (ex) {
       console.error(ex);
     }
-  }, []);
+  }, [mediaStream]);
+  
   return (
     <>
       <div
@@ -50,9 +51,9 @@ const Participator = ({ id, fullName, status, mediaStream,kind, onClick }) => {
           className={`Participation-image video ${status} active`}
         >
           {isLoading && <CircularProgress color="secondary" />}
-
-          <video width={265} ref={videoRef} autoPlay playsInline></video>
-          <audio ref={audioRef} autoPlay playsInline></audio>
+          {kind!=='audio' && (<video width={265} ref={videoRef} autoPlay playsInline></video>)}
+         {kind==='audio' && (<audio ref={audioRef} autoPlay playsInline></audio>)}
+          
           
         </div>
       </div>
