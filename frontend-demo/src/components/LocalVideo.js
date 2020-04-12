@@ -26,7 +26,7 @@ const LocalVideo = ({ id, videoStream,audioStream,kind, onClick }) => {
     } catch (ex) {
       console.error(ex);
     }
-  }, []);
+  }, [videoStream,audioStream]);
   return (
     <>
       <div
