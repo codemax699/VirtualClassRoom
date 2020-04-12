@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useReducer } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
 import Grid from "@material-ui/core/Grid";
@@ -23,14 +23,27 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-let consumersTemp = {};
+const consumerReducer = (state, action) => {
+  switch (action.type) {
+    case "NEW_CONSUMER":
+      let id = action.consumer.id;
+      let consumer = action.consumer;
+      let item = {};
+      item[id] = consumer;
+      return { ...state, ...item };
+    default:
+      return state;
+  }
+};
+
+const initialConsumers = {};
 
 export default function CenteredGrid() {
   const classes = useStyles();
 
   const [conferenceId, setConferenceId] = useState("");
   const [routerId, setRouterId] = useState("");
-  const [consumers, setConsumers] = useState({});
+  //const [consumers, setConsumers] = useState({});
   const [isProducer, setIsProducer] = useState(false);
   const [isConsumer, setIsConsumer] = useState(false);
   const [kind, setKind] = useState("video");
@@ -42,14 +55,18 @@ export default function CenteredGrid() {
   const [producerState, setProducerState] = useState();
   const [phone, setPhone] = useState();
   const [isConferenceClick, setIsConferenceClick] = useState(false);
+  const [consumers, dispatchConsumer] = useReducer(
+    consumerReducer,
+    initialConsumers
+  );
 
   useEffect(() => {
     try {
+      //consumerRef.current = consumers;
     } catch (ex) {
       console.error(ex);
     }
-  }, []);
-
+  }, [consumers]);
 
   const events = {
     onBroadcastSuccess: (val) => {
@@ -92,7 +109,7 @@ export default function CenteredGrid() {
         console.error("SoftPhone", "events", "onMyStream", error);
       }
     },
-    newConsumer: (consumer) => {
+    newConsumer: (consumer, ref) => {
       try {
         console.log(
           "SoftPhone",
@@ -100,10 +117,16 @@ export default function CenteredGrid() {
           "newConsumer",
           `${JSON.stringify(consumer)}`
         );
-        const temp = { ...consumersTemp };
-        temp[consumer.id] = consumer;
-        consumersTemp = { ...temp };
-        setConsumers(consumersTemp);
+        let _id = consumer.id;
+        // let temp = { ...consumers };
+        // temp[_id] = consumer;
+        //let temp = { ...consumerRef.current, _id: consumer };
+        //setConsumers({ ...temp });
+        // dispatch({
+        //   type: todo.complete ? 'UNDO_TODO' : 'DO_TODO',
+        //   id: todo.id,
+        // });
+        dispatchConsumer({ type: "NEW_CONSUMER", consumer: consumer });
       } catch (error) {
         console.error("SoftPhone", "events", "newConsumer", error);
       }
@@ -111,10 +134,7 @@ export default function CenteredGrid() {
     closeConsumer: (id) => {
       try {
         console.log("SoftPhone", "events", "closeConsumer", `${id}`);
-        const temp = { ...consumersTemp };
-        delete temp[id];
-        consumersTemp = { ...temp };
-        setConsumers(consumersTemp);
+        dispatchConsumer({ type: "DELETE_CONSUMER", id: id });
       } catch (error) {
         console.error("SoftPhone", "events", "newConsumer", error);
       }
@@ -340,6 +360,7 @@ export default function CenteredGrid() {
         <Grid item xs={12}>
           <Grid container spacing={3}>
             {Object.values(consumers).map((item) => {
+              console.log(item.id);
               const stream = new MediaStream();
               stream.addTrack(item.track);
               return (
