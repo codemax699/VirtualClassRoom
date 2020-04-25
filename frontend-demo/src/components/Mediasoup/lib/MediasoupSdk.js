@@ -161,7 +161,7 @@ class MediasoupSdk {
             consumer.on("trace", (trace) => console.log("MediasoupSdk", trace));
 
             if (subscribeEvents["newConsumer"])
-              subscribeEvents["newConsumer"](item.producer.transportId,consumer);
+              subscribeEvents["newConsumer"](msg.transportId,consumer);
           });
         } else {
           console.error("MediasoupSdk", "onConsumerCreate-invalid data");
@@ -217,14 +217,21 @@ class MediasoupSdk {
           subscribeEvents["onBroadcastSuccess"](false);
       }
     },
-    consumerClosed: () => {
-      this.consumerHandle.close();
+    activeSpeaker: (arg) => {
+      if (subscribeEvents["activeSpeaker"])
+          subscribeEvents["activeSpeaker"](arg);
     },
-    consumerPaused: () => {
-      this.consumerHandle.pause();
+    consumerClosed: (arg) => {
+      if (subscribeEvents["consumerClosed"])
+          subscribeEvents["consumerClosed"](arg);
     },
-    consumerResumed: () => {
-      this.consumerHandle.resume();
+    consumerPaused: (arg) => {
+      if (subscribeEvents["consumerPaused"])
+      subscribeEvents["consumerPaused"](arg);
+    },
+    consumerResumed: (arg) => {
+      if (subscribeEvents["consumerResumed"])
+          subscribeEvents["consumerResumed"](arg);
     },
   };
 
@@ -232,15 +239,16 @@ class MediasoupSdk {
     return this.signaling;
   };
   signaling = {
-    sendMediaOperationRequest: async (operation) => {
+    sendMediaOperationRequest: async (operation,id) => {
       try {
         const reply = await mySignaling.request("media-operation", {
           conferenceId: conferenceData.conferenceId,
-          type: isConsuming ? "consumer" : "producer",
+          type: 'producer',// isConsuming ? "consumer" : "producer",
           routerId: conferenceData.routerId,
-          mediaId: "5f03ffde-a551-4201-851a-37b7452dbb69",
-          mediaType: isConsuming ? "consumer" : "producer",
+          mediaId: id,
+          mediaType: 'producer',// isConsuming ? "consumer" : "producer",
           mediaOperation: operation,
+          otype: operation,
         });
 
         console.log(
@@ -256,14 +264,15 @@ class MediasoupSdk {
         return false;
       }
     },
-    sendMediaCloseRequest: async () => {
+    sendMediaCloseRequest: async (id) => {
       try {
         const reply = await mySignaling.request("media-close", {
           conferenceId: conferenceData.conferenceId,
           type: isConsuming ? "consumer" : "producer",
           routerId: conferenceData.routerId,
-          mediaId: "5f03ffde-a551-4201-851a-37b7452dbb69",
-          otype: isConsuming ? "consumer" : "producer",
+          mediaId: id,
+          otype: "producer",// isConsuming ? "consumer" : "producer",
+          mediaOperation: "producer",
         });
 
         console.log(
@@ -756,7 +765,12 @@ Once the receive transport is created, the client side application can consume m
     },
     /*Closes the producer. No more media is transmitted. The producer's track is internally stopped by calling stop() on it, meaning that it becomes no longer usable.*/
     close: (kind) => {
-      producers[kind].close();
+      const pro = producers[kind];
+      if(pro){
+        pro.close();
+        return this.signaling.sendMediaCloseRequest(pro.id);
+      }
+      return false;
     },
 
     /*Gets the local RTP sender statistics by calling getStats() in the underlying RTCRtpSender instance.*/
@@ -766,12 +780,22 @@ Once the receive transport is created, the client side application can consume m
 
     /*Pauses the producer (no RTP is sent to the server).*/
     pause: (kind) => {
-      producers[kind].pause();
+      const pro = producers[kind];
+      if(pro){
+        pro.pause();
+        return this.signaling.sendMediaOperationRequest("pause",pro.id);
+      }
+      return false;
     },
 
     /*Resumes the producer (RTP is sent again to the server).*/
     resume: (kind) => {
-      producers[kind].resume();
+      const pro = producers[kind];
+      if(pro){
+        pro.resume();
+        return this.signaling.sendMediaOperationRequest("resume",pro.id);
+      }
+      return false;
     },
 
     /*Replaces the audio or video track being transmitted. No negotiation with the server is needed.*/
@@ -791,6 +815,12 @@ Once the receive transport is created, the client side application can consume m
     setRtpEncodingParameters: (params) => {
       //  producer.setRtpEncodingParameters(params);
     },
+    /* operation: (command) => {
+      if (command === "close") {
+        return this.signaling.sendMediaCloseRequest();
+      }
+      return this.signaling.sendMediaOperationRequest(command);
+    } */
   };
 
   consumerHandle = {
@@ -816,6 +846,7 @@ Once the receive transport is created, the client side application can consume m
     /*Closes the consumer.*/
     close: () => {
       consumer.close();
+      return true;
     },
     /* Gets the local RTP receiver statistics by calling getStats() in the underlying RTCRtpReceiver instance*/
     getStats: () => {
@@ -824,17 +855,13 @@ Once the receive transport is created, the client side application can consume m
     /*Pauses the consumer. Internally the library sets track.enabled = false in the remote track.*/
     pause: () => {
       consumer.pause();
+      return true;
     },
     /*Resumes the consumer Internally the library sets track.enabled = true in the remote track.*/
     resume: () => {
       consumer.resume();
-    },
-    operation: (command) => {
-      if (command === "close") {
-        return this.signaling.sendMediaCloseRequest();
-      }
-      return this.signaling.sendMediaOperationRequest(command);
-    },
+      return true;
+    }
   };
 }
 

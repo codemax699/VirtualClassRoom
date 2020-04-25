@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import VideocamOffSharpIcon from '@material-ui/icons/VideocamOffSharp';
+import VolumeOffIcon from '@material-ui/icons/VolumeOff';
+import { red } from '@material-ui/core/colors'
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -11,7 +14,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Participator = ({ id, fullName, status, mediaStream,kind, onClick }) => {
+const Participator = ({ id, fullName, status, mediaStream,kind, onClick,isVideoPause ,isAudioPause}) => {
   const videoRef = React.createRef();
   const audioRef = React.createRef();
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +56,9 @@ const Participator = ({ id, fullName, status, mediaStream,kind, onClick }) => {
           {isLoading && <CircularProgress color="secondary" />}
           {kind!=='audio' && (<video width={265} ref={videoRef} autoPlay playsInline></video>)}
          {kind==='audio' && (<audio ref={audioRef} autoPlay playsInline></audio>)}
-          
+         {isVideoPause && <VideocamOffSharpIcon style={{ color: red[500] }} />}
+         {isAudioPause && <VolumeOffIcon style={{ color: red[500] }} />}
+         
           
         </div>
       </div>

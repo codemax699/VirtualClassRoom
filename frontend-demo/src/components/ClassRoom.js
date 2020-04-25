@@ -11,6 +11,10 @@ import LocalVideo from "./LocalVideo";
 import Participator from "./Participator";
 import PhoneHandle from "./Mediasoup/lib/index";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
+import List from "@material-ui/core/List";
+import ListItem from "@material-ui/core/ListItem";
+import ListItemText from "@material-ui/core/ListItemText";
+import { v4 as uuidv4 } from "uuid";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -25,6 +29,19 @@ const useStyles = makeStyles((theme) => ({
 
 const consumerReducer = (state, action) => {
   switch (action.type) {
+    case "CONSUMER_RESUME":
+    case "CONSUMER_PAUSE":
+      let item = state[action.data.transportId];
+      if (item) {
+        if (action.data.kind === "video")
+          item.isVideoPause = action.type === "CONSUMER_PAUSE";
+        if (action.data.kind === "audio")
+          item.isAudioPause = action.type === "CONSUMER_PAUSE";
+        let modifyItem = {};
+        modifyItem[action.data.transportId] = item;
+        return { ...state, ...modifyItem };
+      }
+      return state;
     case "NEW_CONSUMER":
       let id = action.id;
       let oldStream = state[id];
@@ -38,6 +55,7 @@ const consumerReducer = (state, action) => {
       }
       stream.addTrack(action.consumer.track);
       consumer.stream = stream;
+      consumer.id = id;
       let newItem = {};
       newItem[id] = consumer;
       return { ...state, ...newItem };
@@ -73,6 +91,9 @@ export default function CenteredGrid() {
   useEffect(() => {
     try {
       //consumerRef.current = consumers;
+      const temp = [...eventMsg];
+      temp.push("Load ------------------------------------");
+      setEventMsg([...temp]);
     } catch (ex) {
       console.error(ex);
     }
@@ -115,6 +136,9 @@ export default function CenteredGrid() {
         } else {
           setAudioStream(mStream);
         }
+        const temp = [...eventMsg];
+        temp.push("onMyStream");
+        setEventMsg([...temp]);
       } catch (error) {
         console.error("SoftPhone", "events", "onMyStream", error);
       }
@@ -127,16 +151,11 @@ export default function CenteredGrid() {
           "newConsumer",
           `${JSON.stringify(consumer)}`
         );
-        let _id = consumer.id;
-        // let temp = { ...consumers };
-        // temp[_id] = consumer;
-        //let temp = { ...consumerRef.current, _id: consumer };
-        //setConsumers({ ...temp });
-        // dispatch({
-        //   type: todo.complete ? 'UNDO_TODO' : 'DO_TODO',
-        //   id: todo.id,
-        // });
+
         dispatchConsumer({ type: "NEW_CONSUMER", id: id, consumer: consumer });
+        const temp = [...eventMsg];
+        temp.push(`newConsumer : ${id}`);
+        setEventMsg([...temp]);
       } catch (error) {
         console.error("SoftPhone", "events", "newConsumer", error);
       }
@@ -145,6 +164,9 @@ export default function CenteredGrid() {
       try {
         console.log("SoftPhone", "events", "closeConsumer", `${id}`);
         dispatchConsumer({ type: "DELETE_CONSUMER", id: id });
+        const temp = [...eventMsg];
+        temp.push(`closeConsumer : ${id}`);
+        setEventMsg([...temp]);
       } catch (error) {
         console.error("SoftPhone", "events", "newConsumer", error);
       }
@@ -157,6 +179,9 @@ export default function CenteredGrid() {
           "newPeer",
           `${JSON.stringify(notification)}`
         );
+        const temp = [...eventMsg];
+        temp.push(JSON.stringify(notification));
+        setEventMsg([...temp]);
       } catch (error) {
         console.error("SoftPhone", "events", "newPeer", error);
       }
@@ -169,6 +194,9 @@ export default function CenteredGrid() {
           "peerClosed",
           `${JSON.stringify(notification)}`
         );
+        const temp = [...eventMsg];
+        temp.push(JSON.stringify(notification));
+        setEventMsg([...temp]);
       } catch (error) {
         console.error("SoftPhone", "events", "peerClosed", error);
       }
@@ -181,6 +209,9 @@ export default function CenteredGrid() {
           "consumerClosed",
           `${JSON.stringify(notification)}`
         );
+        const temp = [...eventMsg];
+        temp.push(JSON.stringify(notification));
+        setEventMsg([...temp]);
       } catch (error) {
         console.error("SoftPhone", "events", "consumerClosed", error);
       }
@@ -193,6 +224,7 @@ export default function CenteredGrid() {
           "consumerPaused",
           `${JSON.stringify(notification)}`
         );
+        dispatchConsumer({ type: "CONSUMER_PAUSE", data: notification.data });
       } catch (error) {
         console.error("SoftPhone", "events", "consumerPaused", error);
       }
@@ -205,6 +237,7 @@ export default function CenteredGrid() {
           "consumerResumed",
           `${JSON.stringify(notification)}`
         );
+        dispatchConsumer({ type: "CONSUMER_RESUME", data: notification.data });
       } catch (error) {
         console.error("SoftPhone", "events", "consumerResumed", error);
       }
@@ -229,6 +262,9 @@ export default function CenteredGrid() {
           "activeSpeaker",
           `${JSON.stringify(notification)}`
         );
+        const temp = [...eventMsg];
+        temp.push(JSON.stringify(notification));
+        setEventMsg([...temp]);
       } catch (error) {
         console.error("SoftPhone", "events", "activeSpeaker", error);
       }
@@ -370,20 +406,23 @@ export default function CenteredGrid() {
         <Grid item xs={12}>
           <Grid container spacing={3}>
             {Object.values(consumers).map((item) => {
-              console.log(item.id);
+              const id = item.id;
+              console.log(id);
               /*  const stream = new MediaStream();
               stream.addTrack(item.track); */
               return (
-                <Grid key={item.id} item xs={3}>
-                  <Paper className={classes.paper}>
+                <Grid key={id} item xs={3}>
+                  <Paper className={classes.paper} key={`pa${id}`}>
                     <Participator
-                      key={item.id}
+                      key={`p${id}`}
                       id={item.id}
                       kind={item.kind}
                       mediaStream={item.stream}
                       fullName={item.name}
                       status={"pending.."}
                       active={item.active}
+                      isVideoPause={item.isVideoPause}
+                      isAudioPause={item.isAudioPause}
                     />
                   </Paper>
                 </Grid>
@@ -547,7 +586,7 @@ export default function CenteredGrid() {
                       }
                       onClick={() => {
                         setProducerState("Pause");
-                        if (!phone.consumerHandle.operation("pause")) {
+                        if (!phone.consumerHandle.pause()) {
                           alert("Fail To pause Consumer ");
                         }
                       }}
@@ -561,7 +600,7 @@ export default function CenteredGrid() {
                       }
                       onClick={() => {
                         setProducerState("Resume");
-                        if (!phone.consumerHandle.operation("resume")) {
+                        if (!phone.consumerHandle.resume()) {
                           alert("Fail To resume Consumer ");
                         }
                       }}
@@ -574,7 +613,7 @@ export default function CenteredGrid() {
                       }
                       onClick={() => {
                         setProducerState("Close");
-                        if (!phone.consumerHandle.operation("close")) {
+                        if (!phone.consumerHandle.close()) {
                           alert("Fail To close Consumer ");
                         }
                       }}
@@ -587,6 +626,21 @@ export default function CenteredGrid() {
             </Paper>
           </Grid>
         )}
+
+        <Grid item xs={12} md={12}>
+          <Typography variant="h6">Events</Typography>
+          <div>
+            <List dense={true}>
+              {eventMsg.map((i) => {
+                return (
+                  <ListItem key={uuidv4()}>
+                    <ListItemText key={uuidv4()} primary={i} />
+                  </ListItem>
+                );
+              })}
+            </List>
+          </div>
+        </Grid>
       </Grid>
     </div>
   );
