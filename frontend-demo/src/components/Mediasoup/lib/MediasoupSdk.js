@@ -160,8 +160,11 @@ class MediasoupSdk {
             );
             consumer.on("trace", (trace) => console.log("MediasoupSdk", trace));
 
-            if (subscribeEvents["newConsumer"])
-              subscribeEvents["newConsumer"](msg.transportId,consumer);
+            if (subscribeEvents["newConsumer"]){
+              consumer.consumerId = item.consumer.consumerId
+              subscribeEvents["newConsumer"](item.producer.transportId,consumer);
+            }
+              
           });
         } else {
           console.error("MediasoupSdk", "onConsumerCreate-invalid data");
@@ -613,19 +616,19 @@ Once the receive transport is created, the client side application can consume m
   producingMedia = async (kind) => {
     try {
       async function getUserMedia() {
-        if (!device.canProduce(kind)) {
+        if (!device.canProduce((kind === "video" || kind === "screen")?'video':kind)) {
           console.error(`cannot produce ${kind}`);
           return;
         }
 
         const m = {
-          video: kind === "video",
+          video: (kind === "video" || kind === "screen"),
           audio: kind === "audio",
         };
 
         let stream;
         try {
-          stream = await navigator.mediaDevices.getUserMedia(m);
+          stream = kind === "screen"?navigator.mediaDevices.getDisplayMedia(m) : await navigator.mediaDevices.getUserMedia(m);
         } catch (err) {
           console.error("getUserMedia() failed:", err.message);
           throw err;
@@ -635,7 +638,7 @@ Once the receive transport is created, the client side application can consume m
 
       const mStream = await getUserMedia();
       const track =
-        kind === "video"
+      (kind === "video" || kind === "screen")
           ? mStream.getVideoTracks()[0]
           : mStream.getAudioTracks()[0];
 
@@ -654,7 +657,11 @@ Once the receive transport is created, the client side application can consume m
           { maxBitrate: 300000 },
           { maxBitrate: 900000 },
         ];
+        
       }
+      if(kind === "screen")        
+        options.appData={ mediaTag: 'screen' }
+
       producers[kind] = await sendTransport.produce(options);
 
       //,      codec:device.rtpCapabilities.codecs

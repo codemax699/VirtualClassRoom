@@ -8,6 +8,7 @@ import Typography from "@material-ui/core/Typography";
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
 import LocalVideo from "./LocalVideo";
+import LocalScreenVideo from './LocalScreenVideo'
 import Participator from "./Participator";
 import PhoneHandle from "./Mediasoup/lib/index";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
@@ -31,14 +32,15 @@ const consumerReducer = (state, action) => {
   switch (action.type) {
     case "CONSUMER_RESUME":
     case "CONSUMER_PAUSE":
-      let item = state[action.data.transportId];
+      let mapTransportId = consumerTransportMap[action.data.name];
+      let item = state[mapTransportId];
       if (item) {
         if (action.data.kind === "video")
           item.isVideoPause = action.type === "CONSUMER_PAUSE";
         if (action.data.kind === "audio")
           item.isAudioPause = action.type === "CONSUMER_PAUSE";
         let modifyItem = {};
-        modifyItem[action.data.transportId] = item;
+        modifyItem[mapTransportId] = item;
         return { ...state, ...modifyItem };
       }
       return state;
@@ -58,6 +60,7 @@ const consumerReducer = (state, action) => {
       consumer.id = id;
       let newItem = {};
       newItem[id] = consumer;
+      consumerTransportMap[consumer.consumerId] = id;
       return { ...state, ...newItem };
     default:
       return state;
@@ -65,6 +68,7 @@ const consumerReducer = (state, action) => {
 };
 
 const initialConsumers = {};
+const consumerTransportMap = {};
 
 export default function CenteredGrid() {
   const classes = useStyles();
@@ -79,6 +83,7 @@ export default function CenteredGrid() {
     "--------------------------------",
   ]);
   const [videoStream, setVideoStream] = useState();
+  const [screenVideoStream, setScreenVideoStream] = useState();
   const [audioStream, setAudioStream] = useState();
   const [producerState, setProducerState] = useState();
   const [phone, setPhone] = useState();
@@ -133,6 +138,8 @@ export default function CenteredGrid() {
         console.log("SoftPhone", "events", "onMyStream");
         if (kind === "video") {
           setVideoStream(mStream);
+        } else if (kind === "screen") {
+          setScreenVideoStream(mStream);
         } else {
           setAudioStream(mStream);
         }
@@ -396,6 +403,15 @@ export default function CenteredGrid() {
                     onClick={() => console.log("---------------")}
                   />
                 </Grid>
+                <Grid item xs={12}>
+                  <LocalScreenVideo
+                    id={"asffafsassss"}
+                    videoStream={screenVideoStream}
+                    onClick={() => console.log("---------------")}
+                  />
+                </Grid>
+
+                
               </Grid>
             </Paper>
           </Grid>
@@ -462,6 +478,18 @@ export default function CenteredGrid() {
                     Audio
                   </Button>
                 </Grid>
+                <Grid item xs={2}>
+                  <Button
+                    variant="contained"
+                    color={kind === "screen" ? "primary" : "secondary"}
+                    onClick={() => {
+                      setKind("screen");
+                    }}
+                  >
+                    Screen
+                  </Button>
+                </Grid>
+
                 <Grid item xs={2}>
                   <Button
                     variant="contained"
