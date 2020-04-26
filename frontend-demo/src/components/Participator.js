@@ -26,6 +26,7 @@ const Participator = ({ id, fullName, status, mediaStream,kind, onClick,isVideoP
       console.log("Participator.............................")
       if(kind==='audio'){
         audioRef.current.srcObject = mediaStream;
+        setIsLoading(false);
         return
       }
 

@@ -8,7 +8,7 @@ import Typography from "@material-ui/core/Typography";
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
 import LocalVideo from "./LocalVideo";
-import LocalScreenVideo from './LocalScreenVideo'
+import LocalScreenVideo from "./LocalScreenVideo";
 import Participator from "./Participator";
 import PhoneHandle from "./Mediasoup/lib/index";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
@@ -28,7 +28,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const consumerReducer = (state, action) => {
+/* const consumerReducer = (state, action) => {
   switch (action.type) {
     case "CONSUMER_RESUME":
     case "CONSUMER_PAUSE":
@@ -60,6 +60,61 @@ const consumerReducer = (state, action) => {
       consumer.id = id;
       let newItem = {};
       newItem[id] = consumer;
+      consumerTransportMap[consumer.consumerId] = id;
+      return { ...state, ...newItem };
+    default:
+      return state;
+  }
+};
+ */
+
+/* {
+	transportId: 	{
+        'video' : 	consumer,
+        'audio' : consumer,
+        'screen':consumer
+			}
+} */
+const consumerReducer = (state, action) => {
+  switch (action.type) {
+    case "CONSUMER_RESUME":
+    case "CONSUMER_PAUSE":
+      let mapTransportId = consumerTransportMap[action.data.name];
+      let item = state[mapTransportId];
+      if (item) {
+        if (action.data.kind === "audio"){
+          item['audio'].isAudioPause = action.type === "CONSUMER_PAUSE";
+        }else{        
+          if(item['video'] && item['video'].consumerId ===action.data.name){
+            item['video'].isVideoPause = action.type === "CONSUMER_PAUSE";
+          }else if(item['screen'] && item['screen'].consumerId ===action.data.name){
+            item['screen'].isVideoPause = action.type === "CONSUMER_PAUSE";
+          }
+        }         
+        let modifyItem = {};
+        modifyItem[mapTransportId] = item;
+        return { ...state, ...modifyItem };
+      }
+      return state;
+    case "NEW_CONSUMER":
+      let id = action.id;
+      let consumer = { ...action.consumer };
+      let stream = new MediaStream();
+      stream.addTrack(action.consumer.track);
+      let kind = consumer.kind;
+      if (consumer.data) {
+        kind = consumer.data.mediaTag;
+      }      
+      consumer.stream = stream;
+      consumer.id = id;
+      consumer.mediaTag = kind;      
+      let temp = state[id];
+      if (!temp) temp = {};
+      if (!temp[kind]) temp[kind] = {};
+      temp[kind] = consumer;
+
+      let newItem = {};
+      newItem[id] = temp;
       consumerTransportMap[consumer.consumerId] = id;
       return { ...state, ...newItem };
     default:
@@ -410,8 +465,6 @@ export default function CenteredGrid() {
                     onClick={() => console.log("---------------")}
                   />
                 </Grid>
-
-                
               </Grid>
             </Paper>
           </Grid>
@@ -421,29 +474,33 @@ export default function CenteredGrid() {
 
         <Grid item xs={12}>
           <Grid container spacing={3}>
-            {Object.values(consumers).map((item) => {
-              const id = item.id;
-              console.log(id);
-              /*  const stream = new MediaStream();
-              stream.addTrack(item.track); */
-              return (
-                <Grid key={id} item xs={3}>
-                  <Paper className={classes.paper} key={`pa${id}`}>
-                    <Participator
-                      key={`p${id}`}
-                      id={item.id}
-                      kind={item.kind}
-                      mediaStream={item.stream}
-                      fullName={item.name}
-                      status={"pending.."}
-                      active={item.active}
-                      isVideoPause={item.isVideoPause}
-                      isAudioPause={item.isAudioPause}
-                    />
-                  </Paper>
-                </Grid>
-              );
-            })}
+            {
+            
+            Object.values(consumers).map((values)=>{
+            return  Object.values(values).map((item) => {
+                const id = item.id;
+                console.log(id);
+                return (
+                  <Grid key={id} item xs={3}>
+                    <Paper className={classes.paper} key={`pa${id}`}>
+                      <Participator
+                        key={`p${id}`}
+                        id={item.id}
+                        kind={item.mediaTag}
+                        mediaStream={item.stream}
+                        fullName={item.name}
+                        status={"pending.."}
+                        active={item.active}
+                        isVideoPause={item.isVideoPause}
+                        isAudioPause={item.isAudioPause}
+                      />
+                    </Paper>
+                  </Grid>
+                );
+              })
+            })
+            
+            }
           </Grid>
         </Grid>
         <Grid item xs={12}></Grid>
@@ -456,38 +513,41 @@ export default function CenteredGrid() {
                   Host View
                 </Grid>
 
-                <Grid item xs={2}>
-                  <Button
-                    variant="contained"
-                    color={kind === "video" ? "secondary" : "primary"}
-                    onClick={() => {
-                      setKind("video");
-                    }}
+                <Grid item>
+                  <ButtonGroup
+                    color="primary"
+                    aria-label="outlined primary button group"
                   >
-                    Video
-                  </Button>
-                </Grid>
-                <Grid item xs={2}>
-                  <Button
-                    variant="contained"
-                    color={kind === "video" ? "primary" : "secondary"}
-                    onClick={() => {
-                      setKind("audio");
-                    }}
-                  >
-                    Audio
-                  </Button>
-                </Grid>
-                <Grid item xs={2}>
-                  <Button
-                    variant="contained"
-                    color={kind === "screen" ? "primary" : "secondary"}
-                    onClick={() => {
-                      setKind("screen");
-                    }}
-                  >
-                    Screen
-                  </Button>
+                    <Button
+                      variant="contained"
+                      color={kind === "video" ? "secondary" : "primary"}
+                      onClick={() => {
+                        setKind("video");
+                      }}
+                    >
+                      Video
+                    </Button>
+
+                    <Button
+                      variant="contained"
+                      color={kind === "audio" ? "secondary" : "primary"}
+                      onClick={() => {
+                        setKind("audio");
+                      }}
+                    >
+                      Audio
+                    </Button>
+
+                    <Button
+                      variant="contained"
+                      color={kind === "screen" ? "secondary" : "primary"}
+                      onClick={() => {
+                        setKind("screen");
+                      }}
+                    >
+                      Screen
+                    </Button>
+                  </ButtonGroup>
                 </Grid>
 
                 <Grid item xs={2}>

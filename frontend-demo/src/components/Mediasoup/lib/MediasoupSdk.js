@@ -161,7 +161,8 @@ class MediasoupSdk {
             consumer.on("trace", (trace) => console.log("MediasoupSdk", trace));
 
             if (subscribeEvents["newConsumer"]){
-              consumer.consumerId = item.consumer.consumerId
+              consumer.consumerId = item.consumer.consumerId;
+              consumer.data = item.producer.appData
               subscribeEvents["newConsumer"](item.producer.transportId,consumer);
             }
               
@@ -221,8 +222,8 @@ class MediasoupSdk {
       }
     },
     activeSpeaker: (arg) => {
-      if (subscribeEvents["activeSpeaker"])
-          subscribeEvents["activeSpeaker"](arg);
+     /*  if (subscribeEvents["activeSpeaker"])
+          subscribeEvents["activeSpeaker"](arg); */
     },
     consumerClosed: (arg) => {
       if (subscribeEvents["consumerClosed"])
@@ -650,6 +651,7 @@ Once the receive transport is created, the client side application can consume m
           videoGoogleStartBitrate: 1000,
         },
         stopTracks: true,
+        appData:{ mediaTag: kind }
       };
       if (kind === "video") {
         options.encodings = [
@@ -659,8 +661,8 @@ Once the receive transport is created, the client side application can consume m
         ];
         
       }
-      if(kind === "screen")        
-        options.appData={ mediaTag: 'screen' }
+      /* if(kind === "screen")        
+        options.appData={ mediaTag: 'screen' } */
 
       producers[kind] = await sendTransport.produce(options);
 
