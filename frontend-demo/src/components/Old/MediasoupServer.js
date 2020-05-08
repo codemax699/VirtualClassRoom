@@ -1,5 +1,5 @@
 import MediasoupSdk from "../Mediasoup/lib/MediasoupSdk";
-import mediasoup from "../Mediasoup/lib";
+import mediasoup from "../Mediasoup";
 
 class MediasoupServer extends MediasoupSdk {
   constructor() {

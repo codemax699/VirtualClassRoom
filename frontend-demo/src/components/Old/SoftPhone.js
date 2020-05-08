@@ -6,7 +6,7 @@ import { makeStyles } from "@material-ui/core/styles";
 import TextField from "@material-ui/core/TextField";
 import Participator from "./Participator";
 
-import mediasoup from "../Mediasoup/lib/index";
+import mediasoup from "../Mediasoup/index";
 
 const useStyles = makeStyles((theme) => ({
   root: {

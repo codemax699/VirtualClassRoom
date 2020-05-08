@@ -14,7 +14,7 @@ import Button from "@material-ui/core/Button";
 import CircularProgress from "@material-ui/core/CircularProgress";
 
 import Participator from "./Participator";
-import mediasoup from "../Mediasoup/lib/index";
+import mediasoup from "../Mediasoup/index";
 
 import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";

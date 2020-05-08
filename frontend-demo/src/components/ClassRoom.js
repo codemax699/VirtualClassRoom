@@ -10,7 +10,7 @@ import Button from "@material-ui/core/Button";
 import LocalVideo from "./LocalVideo";
 import LocalScreenVideo from "./LocalScreenVideo";
 import Participator from "./Participator";
-import PhoneHandle from "./Mediasoup/lib/index";
+import PhoneHandle from "./Mediasoup/index";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
 import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
@@ -159,8 +159,8 @@ export default function CenteredGrid() {
     }
   }, []);
 
-  const events = {
-    onBroadcastSuccess: (val) => {
+  const subscribeEvents=(sdk)=>{
+    sdk.subscribeEvent("classroom","onBroadcastSuccess", (val) => {
       try {
         const temp = [...eventMsg];
         temp.push(val ? "onBroadcastSuccess" : "onBroadcastFail");
@@ -168,8 +168,9 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "onBroadcastSuccess", error);
       }
-    },
-    onJoinConferenceSuccess: (msg) => {
+    });
+
+    sdk.subscribeEvent("classroom","onJoinConferenceSuccess", (msg) => {
       try {
         const temp = [...eventMsg];
         temp.push(JSON.stringify(msg));
@@ -177,8 +178,8 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "onJoinConferenceSuccess", error);
       }
-    },
-    onConferenceSuccess: (msg) => {
+    });
+    sdk.subscribeEvent("classroom","onConferenceSuccess",(msg) => {
       try {
         const temp = [...eventMsg];
         temp.push(JSON.stringify(msg));
@@ -187,8 +188,9 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "onConferenceSuccess", error);
       }
-    },
-    onMyStream: (kind, mStream) => {
+    });
+
+    sdk.subscribeEvent("classroom","onMyStream",(kind, mStream) => {
       try {
         console.log("SoftPhone", "events", "onMyStream");
         if (kind === "video") {
@@ -204,8 +206,8 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "onMyStream", error);
       }
-    },
-    newConsumer: (id, consumer) => {
+    });
+    sdk.subscribeEvent("classroom","newConsumer", (id, consumer) => {
       try {
         console.log(
           "SoftPhone",
@@ -221,8 +223,14 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "newConsumer", error);
       }
-    },
-    closeConsumer: (id) => {
+    });
+    sdk.subscribeEvent("classroom","onConsumerMediaAdded",(data)=>{
+      console.log(JSON.stringify(data));
+    });
+    sdk.subscribeEvent("classroom","onConsumerScreenAdded",(data)=>{
+      console.log(JSON.stringify(data));
+    });
+    sdk.subscribeEvent("classroom","closeConsumer", (id) => {
       try {
         console.log("SoftPhone", "events", "closeConsumer", `${id}`);
         dispatchConsumer({ type: "DELETE_CONSUMER", id: id });
@@ -232,8 +240,8 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "newConsumer", error);
       }
-    },
-    newPeer: (notification) => {
+    });
+    sdk.subscribeEvent("classroom","newPeer", (notification) => {
       try {
         console.log(
           "SoftPhone",
@@ -247,8 +255,9 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "newPeer", error);
       }
-    },
-    peerClosed: (notification) => {
+    });
+
+    sdk.subscribeEvent("classroom","peerClosed",(notification) => {
       try {
         console.log(
           "SoftPhone",
@@ -262,8 +271,9 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "peerClosed", error);
       }
-    },
-    consumerClosed: (notification) => {
+    });
+
+    sdk.subscribeEvent("classroom","consumerClosed",(notification) => {
       try {
         console.log(
           "SoftPhone",
@@ -277,8 +287,8 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "consumerClosed", error);
       }
-    },
-    consumerPaused: (notification) => {
+    });
+    sdk.subscribeEvent("classroom","consumerPaused",(notification) => {
       try {
         console.log(
           "SoftPhone",
@@ -290,8 +300,8 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "consumerPaused", error);
       }
-    },
-    consumerResumed: (notification) => {
+    });
+    sdk.subscribeEvent("classroom","consumerResumed",(notification) => {
       try {
         console.log(
           "SoftPhone",
@@ -303,8 +313,8 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "consumerResumed", error);
       }
-    },
-    consumerLayersChanged: (notification) => {
+    });
+    sdk.subscribeEvent("classroom","consumerLayersChanged",(notification) => {
       try {
         console.log(
           "SoftPhone",
@@ -315,8 +325,8 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "consumerLayersChanged", error);
       }
-    },
-    activeSpeaker: (notification) => {
+    });
+    sdk.subscribeEvent("classroom","activeSpeaker",(notification) => {
       try {
         console.log(
           "SoftPhone",
@@ -330,15 +340,15 @@ export default function CenteredGrid() {
       } catch (error) {
         console.error("SoftPhone", "events", "activeSpeaker", error);
       }
-    },
-  };
-
+    });
+  }
   const clientInit = () => {
     setIsConsumer(true);
     setIsProducer(false);
     const sdk = new PhoneHandle().client;
     setPhone(sdk);
-    sdk.initialize(events);
+    subscribeEvents(sdk);
+    sdk.initialize();
   };
 
   const serverInit = () => {
@@ -346,7 +356,8 @@ export default function CenteredGrid() {
     setIsConsumer(false);
     const sdk = new PhoneHandle().server;
     setPhone(sdk);
-    sdk.initialize(events);
+    subscribeEvents(sdk);
+    sdk.initialize();
   };
 
   return (
@@ -412,7 +423,7 @@ export default function CenteredGrid() {
                     return;
                   }
                   setIsConferenceClick(true);
-                  phone.producerHandle.createConference(conferenceId, events);
+                  phone.producerHandle.createConference(conferenceId);
                 }}
               >
                 Start Conference

@@ -68,6 +68,11 @@ export class SocketClient {
               messageListener.onConsumerCreate(msg);
             break;
           }
+          case "consumer-added": {
+            if (messageListener && messageListener.onConsumerAdded)
+              messageListener.onConsumerAdded(msg);
+            break;
+          }
           case "media-broadcast": {
             if (messageListener && messageListener.mediaBroadcast)
               messageListener.mediaBroadcast(msg);

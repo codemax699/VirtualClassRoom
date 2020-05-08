@@ -9,11 +9,15 @@ let mySignaling = {};
 let sendTransport = {};
 let recvTransport = {};
 let conferenceData = {};
-let sendTransportSetting = {}; 
+let sendTransportSetting = {};
 let recvTransportSetting = {};
 let subscribeEvents = {};
 let isConsuming = false;
 let sendTransportProduceEvent = {};
+let consumerMedia = {};
+let consumerScreenMedia = {};
+
+
 class MediasoupSdk {
   constructor() {
     try {
@@ -21,9 +25,6 @@ class MediasoupSdk {
         `%c MediasoupHandler MediasoupSdk `,
         "color:#FF00FF; font-family:'Ubuntu'; display: block;font-weight:bold; font-size:18px;background: #34eb4f;"
       );
-      /*  subscribeEvents = callBack;
-      mySignaling = new SocketClient(this.socketMessageListener);
-      device = new mediasoupTypes.Device(); */
     } catch (error) {
       console.error("MediasoupSdk", "constructor", error);
     }
@@ -44,6 +45,7 @@ class MediasoupSdk {
       throw error;
     }
   };
+  
   socketMessageListener = {
     onConferenceCreate: async (msg) => {
       try {
@@ -75,7 +77,7 @@ class MediasoupSdk {
     },
     onTransportCreate: async (msg) => {
       try {
-       // transportSetting = msg;
+        // transportSetting = msg;
         if (
           !(await this.creatingTransports({
             id: msg.transportId,
@@ -88,8 +90,8 @@ class MediasoupSdk {
           throw new Error("Fail To createSendTransport");
 
         if (isConsuming) {
-           recvTransportSetting = msg;
-          this.signaling.consumingMedia("video"); 
+          recvTransportSetting = msg;
+          this.signaling.consumingMedia("video");
           this.signaling.consumingMedia("audio");
           if (subscribeEvents["onJoinConferenceSuccess"]) {
             subscribeEvents["onJoinConferenceSuccess"](); //in this version only user can act as broadcaster or consumer
@@ -160,12 +162,41 @@ class MediasoupSdk {
             );
             consumer.on("trace", (trace) => console.log("MediasoupSdk", trace));
 
-            if (subscribeEvents["newConsumer"]){
+            if (subscribeEvents["newConsumer"]) {
               consumer.consumerId = item.consumer.consumerId;
-              consumer.data = item.producer.appData
-              subscribeEvents["newConsumer"](item.producer.transportId,consumer);
+              consumer.data = item.producer.appData;
+              subscribeEvents["newConsumer"](
+                item.producer.transportId,
+                consumer
+              );
             }
-              
+
+            const id = item.producer.transportId;
+            let stream = new MediaStream();
+            stream.addTrack(consumer.track);
+            let kind = consumer.kind;
+            if (consumer.data) {
+              kind = consumer.data.mediaTag;
+            }
+
+            let newConsumer = { stream, id, kind, consumerData: item };
+            let temp = kind==="screen"?consumerScreenMedia[id]:consumerMedia[id];
+            if (!temp) temp = {};
+            if (!temp[kind]) temp[kind] = {};
+            temp[kind] = newConsumer;          
+
+            if(kind==="screen"){
+              consumerScreenMedia[id] = temp;
+              if (subscribeEvents["onConsumerScreenAdded"]) {
+                subscribeEvents["onConsumerScreenAdded"](consumerScreenMedia);
+              }
+            }else{
+              consumerMedia[id] = temp;
+              if (subscribeEvents["onConsumerMediaAdded"]) {
+                subscribeEvents["onConsumerMediaAdded"](consumerMedia);
+              }
+            }
+            
           });
         } else {
           console.error("MediasoupSdk", "onConsumerCreate-invalid data");
@@ -211,6 +242,9 @@ class MediasoupSdk {
         console.error("MediasoupSdk", "onConsumerCreate", error);
       }
     },
+    onConsumerAdded:(arg)=>{
+        console.log(JSON.stringify(arg));
+    },
     onMediaBroadcast: (msg) => {
       try {
         if (subscribeEvents["onBroadcastSuccess"])
@@ -222,20 +256,20 @@ class MediasoupSdk {
       }
     },
     activeSpeaker: (arg) => {
-     /*  if (subscribeEvents["activeSpeaker"])
+      /*  if (subscribeEvents["activeSpeaker"])
           subscribeEvents["activeSpeaker"](arg); */
     },
     consumerClosed: (arg) => {
       if (subscribeEvents["consumerClosed"])
-          subscribeEvents["consumerClosed"](arg);
+        subscribeEvents["consumerClosed"](arg);
     },
     consumerPaused: (arg) => {
       if (subscribeEvents["consumerPaused"])
-      subscribeEvents["consumerPaused"](arg);
+        subscribeEvents["consumerPaused"](arg);
     },
     consumerResumed: (arg) => {
       if (subscribeEvents["consumerResumed"])
-          subscribeEvents["consumerResumed"](arg);
+        subscribeEvents["consumerResumed"](arg);
     },
   };
 
@@ -243,14 +277,14 @@ class MediasoupSdk {
     return this.signaling;
   };
   signaling = {
-    sendMediaOperationRequest: async (operation,id) => {
+    sendMediaOperationRequest: async (operation, id) => {
       try {
         const reply = await mySignaling.request("media-operation", {
           conferenceId: conferenceData.conferenceId,
-          type: 'producer',// isConsuming ? "consumer" : "producer",
+          type: "producer", // isConsuming ? "consumer" : "producer",
           routerId: conferenceData.routerId,
           mediaId: id,
-          mediaType: 'producer',// isConsuming ? "consumer" : "producer",
+          mediaType: "producer", // isConsuming ? "consumer" : "producer",
           mediaOperation: operation,
           otype: operation,
         });
@@ -275,7 +309,7 @@ class MediasoupSdk {
           type: isConsuming ? "consumer" : "producer",
           routerId: conferenceData.routerId,
           mediaId: id,
-          otype: "producer",// isConsuming ? "consumer" : "producer",
+          otype: "producer", // isConsuming ? "consumer" : "producer",
           mediaOperation: "producer",
         });
 
@@ -354,7 +388,7 @@ class MediasoupSdk {
           conferenceId: conferenceData.conferenceId,
           kind,
           routerId: conferenceData.routerId,
-          transportId: sendTransportSetting.transportId, 
+          transportId: sendTransportSetting.transportId,
           rtpParams: rtpParameters,
           serverRtpParams: capabilities,
           appData,
@@ -402,7 +436,7 @@ class MediasoupSdk {
           conferenceId: conferenceData.conferenceId,
           type: isConsuming ? "consumer" : "producer",
           routerId: conferenceData.routerId,
-          transportId: sendTransportSetting.transportId, 
+          transportId: sendTransportSetting.transportId,
           capabilities: capabilities,
           dtlsParameters: dtlsParameters,
         });
@@ -422,7 +456,7 @@ Once the receive transport is created, the client side application can consume m
           conferenceId: conferenceData.conferenceId,
           kind: kind,
           routerId: conferenceData.routerId,
-          transportId: recvTransportSetting.transportId, 
+          transportId: recvTransportSetting.transportId,
           rtpParams: capabilities,
           consumeType: kind,
         });
@@ -472,7 +506,7 @@ Once the receive transport is created, the client side application can consume m
         const reply = await mySignaling.request("producer-broadcast", {
           conferenceId: conferenceData.conferenceId,
           routerId: conferenceData.routerId,
-          transportId: sendTransportSetting.transportId, 
+          transportId: sendTransportSetting.transportId,
           producerId: conferenceData.producerId,
         });
 
@@ -576,7 +610,12 @@ Once the receive transport is created, the client side application can consume m
           );
         });
 
-        console.log("MediasoupSdk", "creatingTransports", "RecvTransport" ,`RecvTransport : ${JSON.stringify(recvTransport)}`);
+        console.log(
+          "MediasoupSdk",
+          "creatingTransports",
+          "RecvTransport",
+          `RecvTransport : ${JSON.stringify(recvTransport)}`
+        );
       } else {
         sendTransport = device.createSendTransport({
           id: id,
@@ -601,7 +640,12 @@ Once the receive transport is created, the client side application can consume m
           );
         });
 
-        console.log("MediasoupSdk", "creatingTransports", "sendTransport" , `sendTransport : ${JSON.stringify(sendTransport)}`);
+        console.log(
+          "MediasoupSdk",
+          "creatingTransports",
+          "sendTransport",
+          `sendTransport : ${JSON.stringify(sendTransport)}`
+        );
       }
       console.log("MediasoupSdk", "creatingTransports");
       return true;
@@ -617,19 +661,26 @@ Once the receive transport is created, the client side application can consume m
   producingMedia = async (kind) => {
     try {
       async function getUserMedia() {
-        if (!device.canProduce((kind === "video" || kind === "screen")?'video':kind)) {
+        if (
+          !device.canProduce(
+            kind === "video" || kind === "screen" ? "video" : kind
+          )
+        ) {
           console.error(`cannot produce ${kind}`);
           return;
         }
 
         const m = {
-          video: (kind === "video" || kind === "screen"),
+          video: kind === "video" || kind === "screen",
           audio: kind === "audio",
         };
 
         let stream;
         try {
-          stream = kind === "screen"?navigator.mediaDevices.getDisplayMedia(m) : await navigator.mediaDevices.getUserMedia(m);
+          stream =
+            kind === "screen"
+              ? navigator.mediaDevices.getDisplayMedia(m)
+              : await navigator.mediaDevices.getUserMedia(m);
         } catch (err) {
           console.error("getUserMedia() failed:", err.message);
           throw err;
@@ -639,7 +690,7 @@ Once the receive transport is created, the client side application can consume m
 
       const mStream = await getUserMedia();
       const track =
-      (kind === "video" || kind === "screen")
+        kind === "video" || kind === "screen"
           ? mStream.getVideoTracks()[0]
           : mStream.getAudioTracks()[0];
 
@@ -651,7 +702,7 @@ Once the receive transport is created, the client side application can consume m
           videoGoogleStartBitrate: 1000,
         },
         stopTracks: true,
-        appData:{ mediaTag: kind }
+        appData: { mediaTag: kind },
       };
       if (kind === "video") {
         options.encodings = [
@@ -659,7 +710,6 @@ Once the receive transport is created, the client side application can consume m
           { maxBitrate: 300000 },
           { maxBitrate: 900000 },
         ];
-        
       }
       /* if(kind === "screen")        
         options.appData={ mediaTag: 'screen' } */
@@ -775,7 +825,7 @@ Once the receive transport is created, the client side application can consume m
     /*Closes the producer. No more media is transmitted. The producer's track is internally stopped by calling stop() on it, meaning that it becomes no longer usable.*/
     close: (kind) => {
       const pro = producers[kind];
-      if(pro){
+      if (pro) {
         pro.close();
         return this.signaling.sendMediaCloseRequest(pro.id);
       }
@@ -790,9 +840,9 @@ Once the receive transport is created, the client side application can consume m
     /*Pauses the producer (no RTP is sent to the server).*/
     pause: (kind) => {
       const pro = producers[kind];
-      if(pro){
+      if (pro) {
         pro.pause();
-        return this.signaling.sendMediaOperationRequest("pause",pro.id);
+        return this.signaling.sendMediaOperationRequest("pause", pro.id);
       }
       return false;
     },
@@ -800,9 +850,9 @@ Once the receive transport is created, the client side application can consume m
     /*Resumes the producer (RTP is sent again to the server).*/
     resume: (kind) => {
       const pro = producers[kind];
-      if(pro){
+      if (pro) {
         pro.resume();
-        return this.signaling.sendMediaOperationRequest("resume",pro.id);
+        return this.signaling.sendMediaOperationRequest("resume", pro.id);
       }
       return false;
     },
@@ -870,7 +920,7 @@ Once the receive transport is created, the client side application can consume m
     resume: () => {
       consumer.resume();
       return true;
-    }
+    },
   };
 }
 
